@@ -1,0 +1,33 @@
+# System operacyjny
+.DS_Store
+Thumbs.db
+
+# Pliki i katalogi generowane przez qmake i kompilację
+*.pro.user
+*.pro.user.*
+*.qbs
+*.qmake.stash
+*.qmake.cache
+Makefile
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+*.app
+
+# Pliki tymczasowe IDE
+*.swp
+*.swo
+*~
+*.tmp
+*.log
+
+# Katalogi
+build/
+debug/
+release/
+
