@@ -1,11 +1,16 @@
 #include "camerathread.h"
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
+#include <gst/app/gstappsink.h>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
+#include <QRunnable>
+#include <QThreadPool>
+
 
 CameraThread::CameraThread(const QString& device, const QString& resolution, int fps, const QString& format, QWidget* widget, const QString& saveDir, QObject* parent)
-    : QThread(parent), device(device), resolution(resolution), fps(fps), format(format), widget(widget), saveDirectory(saveDir), pipeline(nullptr)
+    : QThread(parent), device(device), resolution(resolution), fps(fps), format(format), widget(widget), saveDirectory(saveDir), pipeline(nullptr), sharedClock(nullptr)
 {
 }
 
@@ -24,7 +29,60 @@ void CameraThread::run()
     g_main_loop_unref(loop);
 }
 
-void CameraThread::startPipeline(bool record)
+
+class SaveFrameTask : public QRunnable {
+public:
+    SaveFrameTask(const QString& path, const QByteArray& data)
+        : path(path), data(data) {}
+
+    void run() override {
+        QFile file(path);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(data);
+            file.close();
+        }
+    }
+
+private:
+    QString path;
+    QByteArray data;
+};
+
+
+static GstFlowReturn on_new_sample(GstAppSink* sink, gpointer user_data)
+{
+    CameraThread* thread = static_cast<CameraThread*>(user_data);
+    GstSample* sample = gst_app_sink_pull_sample(sink);
+    if (!sample) return GST_FLOW_ERROR;
+
+    GstBuffer* buffer = gst_sample_get_buffer(sample);
+    GstMapInfo map;
+   if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
+        GstClock* clock = thread->getSharedClock() ? thread->getSharedClock() : gst_element_get_clock(thread->getPipeline());
+
+        GstClockTime pts = GST_BUFFER_PTS(buffer);
+
+        if (!thread->getSharedClock())  {
+            gst_object_unref(clock);  
+        }
+        quint64 timestamp = pts / GST_MSECOND;
+
+        QString deviceId = QFileInfo(thread->getDevice()).fileName();
+        QString filename = QString("frame_%1.jpg").arg(timestamp);
+        QString fullPath = QDir(thread->getSaveDirectory()).filePath(filename);
+
+        QByteArray byteData(reinterpret_cast<const char*>(map.data), map.size);
+        QThreadPool::globalInstance()->start(new SaveFrameTask(fullPath, byteData));
+
+        gst_buffer_unmap(buffer, &map);
+    }
+
+    gst_sample_unref(sample);
+    return GST_FLOW_OK;
+}
+
+
+void CameraThread::startPipeline(bool record, GstClock* externalClock)
 {
     QString pipeline_desc;
 
@@ -61,11 +119,11 @@ void CameraThread::startPipeline(bool record)
             QString pngFilePath = QDir(saveDirectory).filePath("frame_%05d.png");
             pipeline_desc += QString("! tee name=t ! queue ! pngenc ! multifilesink location=%1 t. ! queue ").arg(pngFilePath);
             qDebug() << "Saving PNG to:" << pngFilePath;
-        } else if (format == "JPG") {
-            QString jpgFilePath = QDir(saveDirectory).filePath("frame_%05d.jpg");
-            pipeline_desc += QString("! tee name=t ! queue ! jpegenc ! multifilesink location=%1 t. ! queue ").arg(jpgFilePath);
-            qDebug() << "Saving JPG to:" << jpgFilePath;
-        } else if (format == "YUYV") {
+        }  else if (format == "JPG") {
+            pipeline_desc += "! tee name=t ! queue ! jpegenc ! appsink name=mysink emit-signals=true sync=false t. ! queue ";
+            qDebug() << "Saving JPG via appsink";
+        }
+         else if (format == "YUYV") {
             QString yuyvFilePath = QDir(saveDirectory).filePath("frame_%05d.yuv");
             pipeline_desc += QString("! tee name=t ! queue ! multifilesink location=%1 t. ! queue ").arg(yuyvFilePath);
             qDebug() << "Saving YUYV to:" << yuyvFilePath;
@@ -82,6 +140,27 @@ void CameraThread::startPipeline(bool record)
     if (!pipeline) {
         qWarning() << "Failed to create pipeline";
         return;
+    }
+
+    // Dodaj appsink tylko jeśli nagrywanie
+    if (record) {
+        GstElement* appsink = gst_bin_get_by_name(GST_BIN(pipeline), "mysink");
+        if (appsink) {
+            gst_app_sink_set_emit_signals((GstAppSink*)appsink, TRUE);
+            gst_app_sink_set_drop((GstAppSink*)appsink, TRUE);
+            gst_app_sink_set_max_buffers((GstAppSink*)appsink, 1);
+            g_signal_connect(appsink, "new-sample", G_CALLBACK(on_new_sample), this);
+            gst_object_unref(appsink);
+        } else {
+            qWarning() << "Appsink not found in pipeline!";
+        }
+    }
+
+    // Dodaj wspólny zegar, jeśli przekazano
+    if (externalClock) {
+        sharedClock = externalClock;  // ZAPISUJEMY zegar!
+        gst_pipeline_use_clock(GST_PIPELINE(pipeline), sharedClock);
+        gst_element_set_start_time(pipeline, GST_CLOCK_TIME_NONE);
     }
 
     GstElement* videosink = gst_bin_get_by_interface(GST_BIN(pipeline), GST_TYPE_VIDEO_OVERLAY);
@@ -104,6 +183,7 @@ void CameraThread::startPipeline(bool record)
     gst_bus_add_watch(bus, (GstBusFunc)bus_callback, this);
     gst_object_unref(bus);
 
+    qDebug() << "Setting pipeline to PLAYING state";
     GstStateChangeReturn ret = gst_element_set_state(pipeline, GST_STATE_PLAYING);
     if (ret == GST_STATE_CHANGE_FAILURE) {
         qWarning() << "Failed to start pipeline";
@@ -183,3 +263,6 @@ void CameraThread::stopRecording()
     stopPipeline();
     startPipeline(); // Restart pipeline bez nagrywania
 }
+
+
+

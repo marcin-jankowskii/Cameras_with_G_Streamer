@@ -5,6 +5,7 @@
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
 #include <QWidget>
+#include <gst/app/gstappsink.h>
 
 class CameraThread : public QThread
 {
@@ -17,6 +18,12 @@ public:
     void startRecording();
     void stopRecording();
     void stopPipeline();
+    void startPipeline(bool record = false, GstClock* externalClock = nullptr);
+    QString getSaveDirectory() const { return saveDirectory; }
+    GstClock* getSharedClock() const { return sharedClock; }
+    GstElement* getPipeline() const { return pipeline; }
+    QString getDevice() const { return device; }
+
 
 protected:
     void run() override;
@@ -31,8 +38,10 @@ private:
     GstElement* pipeline;
     GMainLoop* loop;  // Dodane pole dla głównej pętli
     bool isRecording = false; // Flaga nagrywania
+    GstClock* sharedClock;
 
-    void startPipeline(bool record = false);
+
+    
 
     // Deklaracja funkcji zwrotnej dla komunikatów z GstBus
     static gboolean bus_callback(GstBus* bus, GstMessage* message, gpointer data);

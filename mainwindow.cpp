@@ -273,8 +273,21 @@ void MainWindow::on_startButton_clicked()
 
 void MainWindow::on_recordButton_clicked()
 {
+    // Wspólny zegar
+    GstClock* sharedClock = gst_system_clock_obtain();
+
+    // Restartuj pipeline'y w trybie nagrywania z tym samym zegarem
     for (CameraThread* thread : cameraThreads) {
-        thread->startRecording();
+        thread->stopPipeline();
+        thread->startPipeline(true, sharedClock);
+    }
+
+    // Wymuś ręcznie przełączenie wszystkich pipeline'ów na PLAYING równocześnie
+    for (CameraThread* thread : cameraThreads) {
+        GstElement* pipeline = thread->getPipeline();
+        if (pipeline) {
+            gst_element_set_state(pipeline, GST_STATE_PLAYING);
+        }
     }
 }
 
