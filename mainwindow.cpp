@@ -260,10 +260,10 @@ void MainWindow::on_startButton_clicked()
         // Wybieram odpowiedni widget dla kamery
         QWidget* cameraWidget = (i == 0) ? cameraDisplayWindow->getCamera1Widget() : cameraDisplayWindow->getCamera2Widget();
 
-        // Dodaję opóźnienie przed uruchomieniem drugiej kamery
-        if (i > 0) {
-            QThread::msleep(300); // Opóźnienie 300ms przed uruchomieniem drugiej kamery
-        }
+        // // Dodaję opóźnienie przed uruchomieniem drugiej kamery
+        // if (i > 0) {
+        //     QThread::msleep(300); // Opóźnienie 300ms przed uruchomieniem drugiej kamery
+        // }
 
         CameraThread* thread = new CameraThread(device, resolution, fps, format, cameraWidget, cameraDir, this);
         cameraThreads.append(thread);

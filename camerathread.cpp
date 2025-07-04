@@ -9,6 +9,8 @@
 #include <QThreadPool>
 
 
+
+
 CameraThread::CameraThread(const QString& device, const QString& resolution, int fps, const QString& format, QWidget* widget, const QString& saveDir, QObject* parent)
     : QThread(parent), device(device), resolution(resolution), fps(fps), format(format), widget(widget), saveDirectory(saveDir), pipeline(nullptr), sharedClock(nullptr)
 {
@@ -57,22 +59,31 @@ static GstFlowReturn on_new_sample(GstAppSink* sink, gpointer user_data)
 
     GstBuffer* buffer = gst_sample_get_buffer(sample);
     GstMapInfo map;
-   if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
-        GstClock* clock = thread->getSharedClock() ? thread->getSharedClock() : gst_element_get_clock(thread->getPipeline());
+    if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
 
         GstClockTime pts = GST_BUFFER_PTS(buffer);
+        quint64 timestamp_ms = pts / GST_MSECOND;
 
-        if (!thread->getSharedClock())  {
-            gst_object_unref(clock);  
+        if (thread->getFormat() == "RAW") {
+            if (thread->rawOutputFile.isOpen()) {
+                thread->rawOutputFile.write(reinterpret_cast<const char*>(map.data), map.size);
+            }
+
+            // DOPISUJEMY TIMESTAMP DO PLIKU:
+            QString timestampFile = QDir(thread->getSaveDirectory()).filePath("timestamps.txt");
+            QFile tsFile(timestampFile);
+            if (tsFile.open(QIODevice::Append | QIODevice::Text)) {
+                QTextStream out(&tsFile);
+                out << timestamp_ms << "\n";
+                tsFile.close();
+            }
+
+        } else if (thread->getFormat() == "JPG") {
+            QString filename = QString("frame_%1.jpg").arg(timestamp_ms);
+            QString fullPath = QDir(thread->getSaveDirectory()).filePath(filename);
+            QByteArray byteData(reinterpret_cast<const char*>(map.data), map.size);
+            QThreadPool::globalInstance()->start(new SaveFrameTask(fullPath, byteData));
         }
-        quint64 timestamp = pts / GST_MSECOND;
-
-        QString deviceId = QFileInfo(thread->getDevice()).fileName();
-        QString filename = QString("frame_%1.jpg").arg(timestamp);
-        QString fullPath = QDir(thread->getSaveDirectory()).filePath(filename);
-
-        QByteArray byteData(reinterpret_cast<const char*>(map.data), map.size);
-        QThreadPool::globalInstance()->start(new SaveFrameTask(fullPath, byteData));
 
         gst_buffer_unmap(buffer, &map);
     }
@@ -80,6 +91,7 @@ static GstFlowReturn on_new_sample(GstAppSink* sink, gpointer user_data)
     gst_sample_unref(sample);
     return GST_FLOW_OK;
 }
+
 
 
 void CameraThread::startPipeline(bool record, GstClock* externalClock)
@@ -112,9 +124,14 @@ void CameraThread::startPipeline(bool record, GstClock* externalClock)
 
     if (record) {
         if (format == "RAW") {
-            QString rawFilePath = QDir(saveDirectory).filePath("frame_%05d.raw");
-            pipeline_desc += QString("! tee name=t ! queue ! multifilesink location=%1 t. ! queue ").arg(rawFilePath);
-            qDebug() << "Saving RAW to:" << rawFilePath;
+            QString filePath = QDir(saveDirectory).filePath("camera.raw");
+            rawOutputFile.setFileName(filePath);
+            if (!rawOutputFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+                qWarning() << "Failed to open RAW file:" << filePath;
+            } else {
+                qDebug() << "Opened RAW file for continuous writing:" << filePath;
+            }
+            pipeline_desc += "! tee name=t ! queue ! appsink name=mysink emit-signals=true sync=false t. ! queue ";
         } else if (format == "PNG") {
             QString pngFilePath = QDir(saveDirectory).filePath("frame_%05d.png");
             pipeline_desc += QString("! tee name=t ! queue ! pngenc ! multifilesink location=%1 t. ! queue ").arg(pngFilePath);
@@ -245,12 +262,25 @@ void CameraThread::stopPipeline()
 {
     if (pipeline) {
         qDebug() << "Stopping pipeline";
+
+        // Zatrzymaj pipeline
         gst_element_set_state(pipeline, GST_STATE_NULL);
         gst_object_unref(pipeline);
         pipeline = nullptr;
+
+        // Zamknij plik RAW jeśli był otwarty
+        if (rawOutputFile.isOpen()) {
+            rawOutputFile.flush();
+            rawOutputFile.close();
+            qDebug() << "Raw output file closed.";
+        }
+
+        isRecording = false;
+
         qDebug() << "Pipeline stopped";
     }
 }
+
 
 void CameraThread::startRecording()
 {

@@ -6,6 +6,7 @@
 #include <gst/video/videooverlay.h>
 #include <QWidget>
 #include <gst/app/gstappsink.h>
+#include <QFile>
 
 class CameraThread : public QThread
 {
@@ -23,6 +24,9 @@ public:
     GstClock* getSharedClock() const { return sharedClock; }
     GstElement* getPipeline() const { return pipeline; }
     QString getDevice() const { return device; }
+    QString getFormat() const { return format; }
+    QFile rawOutputFile;
+    
 
 
 protected:
@@ -39,6 +43,7 @@ private:
     GMainLoop* loop;  // Dodane pole dla głównej pętli
     bool isRecording = false; // Flaga nagrywania
     GstClock* sharedClock;
+    
 
 
     
