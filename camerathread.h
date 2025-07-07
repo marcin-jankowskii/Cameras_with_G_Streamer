@@ -26,8 +26,9 @@ public:
     QString getDevice() const { return device; }
     QString getFormat() const { return format; }
     QFile rawOutputFile;
-    
 
+signals:
+    void newFrameAvailable(const QImage& image);  
 
 protected:
     void run() override;
@@ -40,16 +41,12 @@ private:
     QWidget* widget;
     QString saveDirectory;
     GstElement* pipeline;
-    GMainLoop* loop;  // Dodane pole dla głównej pętli
-    bool isRecording = false; // Flaga nagrywania
+    GMainLoop* loop; 
+    bool isRecording = false;
     GstClock* sharedClock;
-    
 
-
-    
-
-    // Deklaracja funkcji zwrotnej dla komunikatów z GstBus
     static gboolean bus_callback(GstBus* bus, GstMessage* message, gpointer data);
 };
+
 
 #endif // CAMERATHREAD_H

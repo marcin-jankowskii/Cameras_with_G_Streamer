@@ -6,14 +6,12 @@
 #include <QDir>
 #include <QFileDialog>
 #include "camerathread.h"
-#include "cameradisplaywindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class CameraThread; // Forward declaration
-class CameraDisplayWindow; // Forward declaration
 
 class MainWindow : public QMainWindow
 {
@@ -93,11 +91,13 @@ private slots:
     void on_backlightCompensationEdit_textChanged(const QString &value);   // For camera 1
     void on_backlightCompensationEdit2_textChanged(const QString &value);  // For camera 2
 
+    void updateCamera1Image(const QImage& img);
+    void updateCamera2Image(const QImage& img);
+
 private:
     Ui::MainWindow *ui;
     QString saveDirectory;
     QList<CameraThread*> cameraThreads;
-    CameraDisplayWindow* cameraDisplayWindow = nullptr; // Okno wyświetlania kamer
     void populateCameraList();
     QStringList getCameraDevices();
 };

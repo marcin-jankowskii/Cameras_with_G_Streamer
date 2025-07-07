@@ -121,10 +121,6 @@ MainWindow::~MainWindow()
         delete thread;
     }
     
-    if (cameraDisplayWindow) {
-        cameraDisplayWindow->close();
-        delete cameraDisplayWindow;
-    }
 
     delete ui;
 }
@@ -179,11 +175,6 @@ void MainWindow::on_startButton_clicked()
     }
     cameraThreads.clear();
 
-    if (cameraDisplayWindow) {
-        cameraDisplayWindow->close();
-        delete cameraDisplayWindow;
-        cameraDisplayWindow = nullptr;
-    }
 
     QStringList selectedCameras;
     if (cameraCount >= 1) {
@@ -193,12 +184,8 @@ void MainWindow::on_startButton_clicked()
         selectedCameras << ui->camera2ComboBox->currentText();
     }
 
-    // Tworzę nowe okno wyświetlania kamer
-    cameraDisplayWindow = new CameraDisplayWindow();
-    cameraDisplayWindow->show();
-
-    // Dodaję opóźnienie przed uruchomieniem kamer
-    QThread::msleep(100);
+    // // Dodaję opóźnienie przed uruchomieniem kamer
+    // QThread::msleep(100);
 
     for (int i = 0; i < cameraCount; ++i) {
         QString device = selectedCameras[i];
@@ -257,16 +244,22 @@ void MainWindow::on_startButton_clicked()
         process5.start("v4l2-ctl", setBacklightCompensationArgs);
         process5.waitForFinished();
 
-        // Wybieram odpowiedni widget dla kamery
-        QWidget* cameraWidget = (i == 0) ? cameraDisplayWindow->getCamera1Widget() : cameraDisplayWindow->getCamera2Widget();
 
         // // Dodaję opóźnienie przed uruchomieniem drugiej kamery
         // if (i > 0) {
         //     QThread::msleep(300); // Opóźnienie 300ms przed uruchomieniem drugiej kamery
         // }
 
-        CameraThread* thread = new CameraThread(device, resolution, fps, format, cameraWidget, cameraDir, this);
+        CameraThread* thread = new CameraThread(device, resolution, fps, format, nullptr, cameraDir, this);
+
         cameraThreads.append(thread);
+        // Połączenie sygnału newFrameAvailable z odpowiednim slotem:
+        if (i == 0) {
+            connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
+        } else if (i == 1) {
+            connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
+        }
+
         thread->start();
     }
 }
@@ -291,6 +284,21 @@ void MainWindow::on_recordButton_clicked()
     }
 }
 
+
+void MainWindow::updateCamera1Image(const QImage& img)
+{
+    if (ui->camera1Label) {
+        ui->camera1Label->setPixmap(QPixmap::fromImage(img).scaled(ui->camera1Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+}
+
+void MainWindow::updateCamera2Image(const QImage& img)
+{
+    if (ui->camera2Label) {
+        ui->camera2Label->setPixmap(QPixmap::fromImage(img).scaled(ui->camera2Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+}
+
 void MainWindow::on_stopRecordingButton_clicked()
 {
     for (CameraThread* thread : cameraThreads) {
@@ -309,12 +317,6 @@ void MainWindow::on_stopButton_clicked()
     }
     cameraThreads.clear();
 
-    // Dopiero po zatrzymaniu wątków zamykamy okno wyświetlania
-    if (cameraDisplayWindow) {
-        cameraDisplayWindow->close();
-        delete cameraDisplayWindow;
-        cameraDisplayWindow = nullptr;
-    }
 }
 
 void MainWindow::on_selectDirectoryButton_clicked()
