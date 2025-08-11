@@ -1,10 +1,18 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
 #include <QProcess>
 #include <QRegularExpression>
 #include <QDebug>
 #include <QTextStream>
 #include <QThread>
+#include <QFileDialog>
+#include <QDir>
+
+#include <pylon/PylonIncludes.h>
+#include <pylon/usb/BaslerUsbInstantCamera.h>
+
+#include "baslercamerathread.h"   // używamy wersji z osobnym writerem
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -13,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Configure UI elements
+    // UI
     ui->cameraCountComboBox->addItems({"1", "2"});
     ui->resolutionComboBox->addItems({
         "640x480", "160x120", "176x144", "320x180", "320x240", "352x288", "424x240",
@@ -23,94 +31,49 @@ MainWindow::MainWindow(QWidget *parent)
     });
     ui->formatComboBox->addItems({"JPG", "RAW"});
 
-    // Set default values
-    ui->cameraCountComboBox->setCurrentIndex(0); // Default to 2 cameras
-    ui->resolutionComboBox->setCurrentText("3840x2160"); // Default to Full HD
-    ui->formatComboBox->setCurrentText("JPG"); // Default to PNG
+    ui->cameraCountComboBox->setCurrentIndex(0);
+    ui->resolutionComboBox->setCurrentText("3840x2160");
+    ui->formatComboBox->setCurrentText("JPG");
+
+    ui->displayModeComboBox->addItems({"Separate Windows", "Concatenated Window"});
+    ui->displayModeComboBox->setCurrentIndex(0);
+    currentDisplayMode = 0;
+    concatenatedWindow = nullptr;
 
     populateCameraList();
+    populateBaslerCameraList();
 
-    // Connect sliders to slots
-    connect(ui->focusMinSlider, &QSlider::valueChanged, this, &MainWindow::setFocusMin);
-    connect(ui->zoomSlider, &QSlider::valueChanged, this, &MainWindow::setZoom);
-
-    connect(ui->focusMinSlider2, &QSlider::valueChanged, this, &MainWindow::setFocusMin2);
-    connect(ui->zoomSlider2, &QSlider::valueChanged, this, &MainWindow::setZoom2);
-
-    connect(ui->brightnessSlider, &QSlider::valueChanged, this, &MainWindow::setBrightness);
-    connect(ui->contrastSlider, &QSlider::valueChanged, this, &MainWindow::setContrast);
-    connect(ui->saturationSlider, &QSlider::valueChanged, this, &MainWindow::setSaturation);
-    connect(ui->gainSlider, &QSlider::valueChanged, this, &MainWindow::setGain);
-    connect(ui->sharpnessSlider, &QSlider::valueChanged, this, &MainWindow::setSharpness);
+    // Suwaki i pola edycyjne
+    connect(ui->brightnessSlider,  &QSlider::valueChanged, this, &MainWindow::setBrightness);
+    connect(ui->contrastSlider,    &QSlider::valueChanged, this, &MainWindow::setContrast);
+    connect(ui->saturationSlider,  &QSlider::valueChanged, this, &MainWindow::setSaturation);
+    connect(ui->gainSlider,        &QSlider::valueChanged, this, &MainWindow::setGain);
 
     connect(ui->brightnessSlider2, &QSlider::valueChanged, this, &MainWindow::setBrightness2);
-    connect(ui->contrastSlider2, &QSlider::valueChanged, this, &MainWindow::setContrast2);
+    connect(ui->contrastSlider2,   &QSlider::valueChanged, this, &MainWindow::setContrast2);
     connect(ui->saturationSlider2, &QSlider::valueChanged, this, &MainWindow::setSaturation2);
-    connect(ui->gainSlider2, &QSlider::valueChanged, this, &MainWindow::setGain2);
-    connect(ui->sharpnessSlider2, &QSlider::valueChanged, this, &MainWindow::setSharpness2);
+    connect(ui->gainSlider2,       &QSlider::valueChanged, this, &MainWindow::setGain2);
 
-    connect(ui->exposureSlider, &QSlider::valueChanged, this, &MainWindow::setExposure);
-    connect(ui->exposureSlider2, &QSlider::valueChanged, this, &MainWindow::setExposure2);
+    connect(ui->exposureSlider,    &QSlider::valueChanged, this, &MainWindow::setExposure);
+    connect(ui->exposureSlider2,   &QSlider::valueChanged, this, &MainWindow::setExposure2);
 
-    // Dodajemy połączenia dla nowych parametrów
-    connect(ui->powerLineFrequencySlider, &QSlider::valueChanged, this, &MainWindow::setPowerLineFrequency);
-    connect(ui->powerLineFrequencySlider2, &QSlider::valueChanged, this, &MainWindow::setPowerLineFrequency2);
-    
-    connect(ui->backlightCompensationSlider, &QSlider::valueChanged, this, &MainWindow::setBacklightCompensation);
-    connect(ui->backlightCompensationSlider2, &QSlider::valueChanged, this, &MainWindow::setBacklightCompensation2);
+    connect(ui->brightnessEdit,    &QLineEdit::textChanged, this, &MainWindow::on_brightnessEdit_textChanged);
+    connect(ui->contrastEdit,      &QLineEdit::textChanged, this, &MainWindow::on_contrastEdit_textChanged);
+    connect(ui->saturationEdit,    &QLineEdit::textChanged, this, &MainWindow::on_saturationEdit_textChanged);
+    connect(ui->gainEdit,          &QLineEdit::textChanged, this, &MainWindow::on_gainEdit_textChanged);
 
-    // Connect text edits to slots
-    connect(ui->brightnessEdit, &QLineEdit::textChanged, this, &MainWindow::on_brightnessEdit_textChanged);
-    connect(ui->contrastEdit, &QLineEdit::textChanged, this, &MainWindow::on_contrastEdit_textChanged);
-    connect(ui->saturationEdit, &QLineEdit::textChanged, this, &MainWindow::on_saturationEdit_textChanged);
-    connect(ui->gainEdit, &QLineEdit::textChanged, this, &MainWindow::on_gainEdit_textChanged);
-    connect(ui->sharpnessEdit, &QLineEdit::textChanged, this, &MainWindow::on_sharpnessEdit_textChanged);
+    connect(ui->brightnessEdit2,   &QLineEdit::textChanged, this, &MainWindow::on_brightnessEdit2_textChanged);
+    connect(ui->contrastEdit2,     &QLineEdit::textChanged, this, &MainWindow::on_contrastEdit2_textChanged);
+    connect(ui->saturationEdit2,   &QLineEdit::textChanged, this, &MainWindow::on_saturationEdit2_textChanged);
+    connect(ui->gainEdit2,         &QLineEdit::textChanged, this, &MainWindow::on_gainEdit2_textChanged);
 
-    connect(ui->brightnessEdit2, &QLineEdit::textChanged, this, &MainWindow::on_brightnessEdit2_textChanged);
-    connect(ui->contrastEdit2, &QLineEdit::textChanged, this, &MainWindow::on_contrastEdit2_textChanged);
-    connect(ui->saturationEdit2, &QLineEdit::textChanged, this, &MainWindow::on_saturationEdit2_textChanged);
-    connect(ui->gainEdit2, &QLineEdit::textChanged, this, &MainWindow::on_gainEdit2_textChanged);
-    connect(ui->sharpnessEdit2, &QLineEdit::textChanged, this, &MainWindow::on_sharpnessEdit2_textChanged);
+    connect(ui->exposureEdit,      &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit_textChanged);
+    connect(ui->exposureEdit2,     &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit2_textChanged);
 
-    connect(ui->exposureEdit, &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit_textChanged);
-    connect(ui->exposureEdit2, &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit2_textChanged);
+    connect(ui->displayModeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onDisplayModeChanged);
 
-    connect(ui->whiteBalanceEdit, &QLineEdit::textChanged, this, &MainWindow::on_whiteBalanceEdit_textChanged);
-    connect(ui->whiteBalanceEdit2, &QLineEdit::textChanged, this, &MainWindow::on_whiteBalanceEdit2_textChanged);
-
-    // Dodajemy połączenia dla pól tekstowych nowych parametrów
-    connect(ui->powerLineFrequencyEdit, &QLineEdit::textChanged, this, &MainWindow::on_powerLineFrequencyEdit_textChanged);
-    connect(ui->powerLineFrequencyEdit2, &QLineEdit::textChanged, this, &MainWindow::on_powerLineFrequencyEdit2_textChanged);
-    
-    connect(ui->backlightCompensationEdit, &QLineEdit::textChanged, this, &MainWindow::on_backlightCompensationEdit_textChanged);
-    connect(ui->backlightCompensationEdit2, &QLineEdit::textChanged, this, &MainWindow::on_backlightCompensationEdit2_textChanged);
-
-    // Connect sliders to labels
-    connect(ui->focusMinSlider, &QSlider::valueChanged, this, &MainWindow::updateFocusMinLabel);
-    connect(ui->zoomSlider, &QSlider::valueChanged, this, &MainWindow::updateZoomLabel);
-
-    connect(ui->focusMinSlider2, &QSlider::valueChanged, this, &MainWindow::updateFocusMinLabel2);
-    connect(ui->zoomSlider2, &QSlider::valueChanged, this, &MainWindow::updateZoomLabel2);
-
-
-    connect(ui->whiteBalanceSlider, &QSlider::valueChanged, this, &MainWindow::setWhiteBalanceTemperature);
-    connect(ui->whiteBalanceEdit, &QLineEdit::textChanged, this, &MainWindow::on_whiteBalanceEdit_textChanged);
-
-    connect(ui->whiteBalanceSlider2, &QSlider::valueChanged, this, &MainWindow::setWhiteBalanceTemperature2);
-    connect(ui->whiteBalanceEdit2, &QLineEdit::textChanged, this, &MainWindow::on_whiteBalanceEdit2_textChanged);
-
-    // Dodajemy połączenia do aktualizacji etykiet dla white balance
-    connect(ui->whiteBalanceSlider, &QSlider::valueChanged, this, &MainWindow::updateWhiteBalanceLabel);
-    connect(ui->whiteBalanceSlider2, &QSlider::valueChanged, this, &MainWindow::updateWhiteBalanceLabel2);
-
-    // Set initial label values
-    updateFocusMinLabel(ui->focusMinSlider->value());
-    updateZoomLabel(ui->zoomSlider->value());
-
-    updateFocusMinLabel2(ui->focusMinSlider2->value());
-    updateZoomLabel2(ui->zoomSlider2->value());
-    
-
+    setupBaslerSliderDefaults();
 }
 
 MainWindow::~MainWindow()
@@ -120,24 +83,25 @@ MainWindow::~MainWindow()
         thread->wait();
         delete thread;
     }
-    
-
+    for (BaslerCameraThread* thread : baslerCameraThreads) {
+        thread->stopCamera();
+        thread->quit();
+        thread->wait();
+        delete thread;
+    }
     delete ui;
 }
 
 void MainWindow::populateCameraList()
 {
-    QStringList cameras = getCameraDevices();
-    qDebug() << "Detected cameras:" << cameras;
-
-    if (cameras.isEmpty()) {
-        qDebug() << "No cameras detected.";
-    }
+    const QStringList cameras       = getCameraDevices();
+    const QStringList baslerCameras = getBaslerCameras();
+    const QStringList allCameras    = cameras + baslerCameras;
 
     ui->camera1ComboBox->clear();
     ui->camera2ComboBox->clear();
-    ui->camera1ComboBox->addItems(cameras);
-    ui->camera2ComboBox->addItems(cameras);
+    ui->camera1ComboBox->addItems(allCameras);
+    ui->camera2ComboBox->addItems(allCameras);
 }
 
 QStringList MainWindow::getCameraDevices()
@@ -146,169 +110,161 @@ QStringList MainWindow::getCameraDevices()
     QProcess process;
     process.start("v4l2-ctl", QStringList() << "--list-devices");
     process.waitForFinished();
-
-    QString output = process.readAllStandardOutput();
-    qDebug() << "v4l2-ctl output:" << output;
+    const QString output = process.readAllStandardOutput();
 
     QRegularExpression re("(/dev/video\\d+)");
-    QRegularExpressionMatchIterator i = re.globalMatch(output);
-
-    while (i.hasNext()) {
-        QRegularExpressionMatch match = i.next();
-        cameraDevices << match.captured(1);
+    QRegularExpressionMatchIterator it = re.globalMatch(output);
+    while (it.hasNext()) {
+        const QRegularExpressionMatch m = it.next();
+        cameraDevices << m.captured(1);
     }
-
     return cameraDevices;
 }
 
 void MainWindow::on_startButton_clicked()
 {
-    int cameraCount = ui->cameraCountComboBox->currentText().toInt();
-    QString resolution = ui->resolutionComboBox->currentText();
-    int fps = ui->fpsSpinBox->value();
-    QString format = ui->formatComboBox->currentText();
+    const int cameraCount = ui->cameraCountComboBox->currentText().toInt();
+    const QString resolution = ui->resolutionComboBox->currentText();
+    const int fps = ui->fpsSpinBox->value();
+    const QString format = ui->formatComboBox->currentText();
 
+    // wyczyść wcześniejsze wątki
     for (CameraThread* thread : cameraThreads) {
         thread->quit();
         thread->wait();
         delete thread;
     }
     cameraThreads.clear();
-
+    for (BaslerCameraThread* thread : baslerCameraThreads) {
+        thread->stopCamera();
+        thread->quit();
+        thread->wait();
+        delete thread;
+    }
+    baslerCameraThreads.clear();
 
     QStringList selectedCameras;
-    if (cameraCount >= 1) {
-        selectedCameras << ui->camera1ComboBox->currentText();
-    }
-    if (cameraCount >= 2) {
-        selectedCameras << ui->camera2ComboBox->currentText();
-    }
-
-    // // Dodaję opóźnienie przed uruchomieniem kamer
-    // QThread::msleep(100);
+    if (cameraCount >= 1) selectedCameras << ui->camera1ComboBox->currentText();
+    if (cameraCount >= 2) selectedCameras << ui->camera2ComboBox->currentText();
 
     for (int i = 0; i < cameraCount; ++i) {
-        QString device = selectedCameras[i];
-        QString cameraDir = saveDirectory + QString("/camera%1").arg(i+1);
+        const QString device = selectedCameras[i];
+        const QString cameraDir = saveDirectory + QString("/camera%1").arg(i+1);
         QDir().mkpath(cameraDir);
-        qDebug() << "Camera" << i+1 << "save directory:" << cameraDir;
 
-        // Wyłączenie autofocusu, autoeksponowania i ustawienie zoomu
-        QStringList disableAutofocusArgs = {"-d", device, "--set-ctrl=focus_automatic_continuous=0"};
-        QStringList disableAutoExposureArgs = {"-d", device, "--set-ctrl=auto_exposure=1"}; // Manual exposure
-        QStringList disableAutoWhiteBalanceArgs = {"-d", device, "--set-ctrl=white_balance_automatic=0"};
-        QStringList setZoomArgs;
-        
-        // Ustawienie dodatkowych parametrów wpływających na kolory
-        QStringList setPowerLineFrequencyArgs;
-        QStringList setBacklightCompensationArgs;
-        
-        if (i == 0) {
-            setZoomArgs = {"-d", device, QString("--set-ctrl=zoom_absolute=%1").arg(ui->zoomSlider->value())};
-            setPowerLineFrequencyArgs = {"-d", device, QString("--set-ctrl=power_line_frequency=%1").arg(ui->powerLineFrequencySlider->value())};
-            setBacklightCompensationArgs = {"-d", device, QString("--set-ctrl=backlight_compensation=%1").arg(ui->backlightCompensationSlider->value())};
+        const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+
+        if (isBaslerCamera) {
+            // wyciągnij SN z "Model (SERIAL)"
+            QString serialNumber;
+            int l = device.lastIndexOf("(");
+            int r = device.lastIndexOf(")");
+            if (l >= 0 && r > l) serialNumber = device.mid(l+1, r-l-1);
+            else serialNumber = device;
+
+            auto* thread = new BaslerCameraThread(serialNumber, resolution, fps, format, nullptr, cameraDir, (i == 1), this);
+            baslerCameraThreads.append(thread);
+
+            if (i == 0) connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
+            else        connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
+
+            thread->start();
         } else {
-            setZoomArgs = {"-d", device, QString("--set-ctrl=zoom_absolute=%1").arg(ui->zoomSlider2->value())};
-            setPowerLineFrequencyArgs = {"-d", device, QString("--set-ctrl=power_line_frequency=%1").arg(ui->powerLineFrequencySlider2->value())};
-            setBacklightCompensationArgs = {"-d", device, QString("--set-ctrl=backlight_compensation=%1").arg(ui->backlightCompensationSlider2->value())};
+            // V4L2 kamera — Twoja istniejąca obsługa
+            // (opcjonalne: wyłączenia auto trybów)
+            {
+                QStringList args1 = {"-d", device, "--set-ctrl=focus_automatic_continuous=0"};
+                QProcess p1; p1.start("v4l2-ctl", args1); p1.waitForFinished();
+                QStringList args2 = {"-d", device, "--set-ctrl=auto_exposure=1"};
+                QProcess p2; p2.start("v4l2-ctl", args2); p2.waitForFinished();
+                QStringList args3 = {"-d", device, "--set-ctrl=white_balance_automatic=0"};
+                QProcess p3; p3.start("v4l2-ctl", args3); p3.waitForFinished();
+            }
+
+            CameraThread* thread = new CameraThread(device, resolution, fps, format, nullptr, cameraDir, this);
+            cameraThreads.append(thread);
+
+            if (i == 0) connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
+            else        connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
+
+            thread->start();
         }
-
-        qDebug() << "Executing command:" << "v4l2-ctl" << disableAutofocusArgs;
-        QProcess process1;
-        process1.start("v4l2-ctl", disableAutofocusArgs);
-        process1.waitForFinished();
-
-        qDebug() << "Executing command:" << "v4l2-ctl" << disableAutoExposureArgs;
-        QProcess process2;
-        process2.start("v4l2-ctl", disableAutoExposureArgs);
-        process2.waitForFinished();
-        
-        qDebug() << "Executing command:" << "v4l2-ctl" << disableAutoWhiteBalanceArgs;
-        QProcess process2a;
-        process2a.start("v4l2-ctl", disableAutoWhiteBalanceArgs);
-        process2a.waitForFinished();
-
-        qDebug() << "Executing command:" << "v4l2-ctl" << setZoomArgs;
-        QProcess process3;
-        process3.start("v4l2-ctl", setZoomArgs);
-        process3.waitForFinished();
-        
-        // Ustawiamy dodatkowe parametry
-        qDebug() << "Executing command:" << "v4l2-ctl" << setPowerLineFrequencyArgs;
-        QProcess process4;
-        process4.start("v4l2-ctl", setPowerLineFrequencyArgs);
-        process4.waitForFinished();
-        
-        qDebug() << "Executing command:" << "v4l2-ctl" << setBacklightCompensationArgs;
-        QProcess process5;
-        process5.start("v4l2-ctl", setBacklightCompensationArgs);
-        process5.waitForFinished();
-
-
-        // // Dodaję opóźnienie przed uruchomieniem drugiej kamery
-        // if (i > 0) {
-        //     QThread::msleep(300); // Opóźnienie 300ms przed uruchomieniem drugiej kamery
-        // }
-
-        CameraThread* thread = new CameraThread(device, resolution, fps, format, nullptr, cameraDir, this);
-
-        cameraThreads.append(thread);
-        // Połączenie sygnału newFrameAvailable z odpowiednim slotem:
-        if (i == 0) {
-            connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
-        } else if (i == 1) {
-            connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
-        }
-
-        thread->start();
     }
 }
 
 void MainWindow::on_recordButton_clicked()
 {
-    // Wspólny zegar
+    qDebug() << "MainWindow: Rozpoczynam nagrywanie wszystkich kamer...";
+    qDebug() << "  - Liczba kamer V4L2:" << cameraThreads.size();
+    qDebug() << "  - Liczba kamer Basler:" << baslerCameraThreads.size();
+    qDebug() << "  - Katalog zapisu:" << saveDirectory;
+    
+    // V4L2 (GStreamer)
     GstClock* sharedClock = gst_system_clock_obtain();
-
-    // Restartuj pipeline'y w trybie nagrywania z tym samym zegarem
     for (CameraThread* thread : cameraThreads) {
         thread->stopPipeline();
         thread->startPipeline(true, sharedClock);
     }
-
-    // Wymuś ręcznie przełączenie wszystkich pipeline'ów na PLAYING równocześnie
     for (CameraThread* thread : cameraThreads) {
-        GstElement* pipeline = thread->getPipeline();
-        if (pipeline) {
+        if (auto* pipeline = thread->getPipeline()) {
             gst_element_set_state(pipeline, GST_STATE_PLAYING);
         }
     }
+    // Basler — start zapisu w writerze
+    for (BaslerCameraThread* thread : baslerCameraThreads) {
+        thread->startRecording();
+    }
+    
+    qDebug() << "MainWindow: Nagrywanie rozpoczęte pomyślnie";
 }
-
 
 void MainWindow::updateCamera1Image(const QImage& img)
 {
-    if (ui->camera1Label) {
-        ui->camera1Label->setPixmap(QPixmap::fromImage(img).scaled(ui->camera1Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    if (currentDisplayMode == 0) {
+        if (ui->camera1Label) {
+            ui->camera1Label->setPixmap(QPixmap::fromImage(img).scaled(ui->camera1Label->size(),
+                                                                       Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
+    } else if (currentDisplayMode == 1 && concatenatedWindow) {
+        concatenatedWindow->updateCamera1Image(img);
     }
 }
 
 void MainWindow::updateCamera2Image(const QImage& img)
 {
-    if (ui->camera2Label) {
-        ui->camera2Label->setPixmap(QPixmap::fromImage(img).scaled(ui->camera2Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    // Uwaga: BaslerCameraThread już odbija obraz dla drugiej kamery (isSecondCamera=true),
+    // więc tutaj NIE robimy dodatkowego odbicia. Jeśli chcesz odbijać obraz z V4L2,
+    // zrób to w swojej klasie CameraThread.
+    const QImage toShow = img;
+
+    if (currentDisplayMode == 0) {
+        if (ui->camera2Label) {
+            ui->camera2Label->setPixmap(QPixmap::fromImage(toShow).scaled(ui->camera2Label->size(),
+                                                                          Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
+    } else if (currentDisplayMode == 1 && concatenatedWindow) {
+        concatenatedWindow->updateCamera2Image(toShow);
     }
 }
 
 void MainWindow::on_stopRecordingButton_clicked()
 {
+    qDebug() << "MainWindow: Zatrzymuję nagrywanie wszystkich kamer...";
+    qDebug() << "  - Liczba kamer V4L2:" << cameraThreads.size();
+    qDebug() << "  - Liczba kamer Basler:" << baslerCameraThreads.size();
+    
     for (CameraThread* thread : cameraThreads) {
         thread->stopRecording();
     }
+    for (BaslerCameraThread* thread : baslerCameraThreads) {
+        thread->stopRecording();
+    }
+    
+    qDebug() << "MainWindow: Nagrywanie zatrzymane pomyślnie";
 }
 
 void MainWindow::on_stopButton_clicked()
 {
-    // Najpierw zatrzymujemy wątki kamer
     for (CameraThread* thread : cameraThreads) {
         thread->stopPipeline();
         thread->quit();
@@ -317,426 +273,290 @@ void MainWindow::on_stopButton_clicked()
     }
     cameraThreads.clear();
 
+    for (BaslerCameraThread* thread : baslerCameraThreads) {
+        thread->stopCamera();
+        thread->quit();
+        thread->wait();
+        delete thread;
+    }
+    baslerCameraThreads.clear();
 }
 
 void MainWindow::on_selectDirectoryButton_clicked()
 {
-    QString dir = QFileDialog::getExistingDirectory(this, tr("Select Save Directory"), QDir::homePath());
+    const QString dir = QFileDialog::getExistingDirectory(this, tr("Select Save Directory"), QDir::homePath());
     if (!dir.isEmpty()) {
         saveDirectory = dir;
-        qDebug() << "Selected save directory:" << saveDirectory;
     }
 }
 
-void MainWindow::setFocusMin(int value)
-{
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList disableAutofocusArgs = {"-d", device, "--set-ctrl=focus_automatic_continuous=0"};
-    QStringList setFocusArgs = {"-d", device, QString("--set-ctrl=focus_absolute=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << disableAutofocusArgs;
-    QProcess process1;
-    process1.start("v4l2-ctl", disableAutofocusArgs);
-    process1.waitForFinished();
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setFocusArgs;
-    QProcess process2;
-    process2.start("v4l2-ctl", setFocusArgs);
-    process2.waitForFinished();
-}
-
-void MainWindow::setFocusMin2(int value)
-{
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList disableAutofocusArgs = {"-d", device, "--set-ctrl=focus_automatic_continuous=0"};
-    QStringList setFocusArgs = {"-d", device, QString("--set-ctrl=focus_absolute=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << disableAutofocusArgs;
-    QProcess process1;
-    process1.start("v4l2-ctl", disableAutofocusArgs);
-    process1.waitForFinished();
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setFocusArgs;
-    QProcess process2;
-    process2.start("v4l2-ctl", setFocusArgs);
-    process2.waitForFinished();
-}
-
-void MainWindow::setZoom(int value)
-{
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setZoomArgs = {"-d", device, QString("--set-ctrl=zoom_absolute=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setZoomArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setZoomArgs);
-    process.waitForFinished();
-}
-
-void MainWindow::setZoom2(int value)
-{
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setZoomArgs = {"-d", device, QString("--set-ctrl=zoom_absolute=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setZoomArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setZoomArgs);
-    process.waitForFinished();
-}
+// ---- Sterowanie parametrami (Basler lub V4L2) ----
 
 void MainWindow::setBrightness(int value)
 {
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setBrightnessArgs = {"-d", device, QString("--set-ctrl=brightness=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setBrightnessArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setBrightnessArgs);
-    process.waitForFinished();
+    const QString device = ui->camera1ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerBrightness(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=brightness=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
-
 void MainWindow::setContrast(int value)
 {
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setContrastArgs = {"-d", device, QString("--set-ctrl=contrast=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setContrastArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setContrastArgs);
-    process.waitForFinished();
+    const QString device = ui->camera1ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerContrast(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=contrast=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
-
 void MainWindow::setSaturation(int value)
 {
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setSaturationArgs = {"-d", device, QString("--set-ctrl=saturation=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setSaturationArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setSaturationArgs);
-    process.waitForFinished();
+    const QString device = ui->camera1ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerSaturation(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=saturation=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
-
 void MainWindow::setGain(int value)
 {
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setGainArgs = {"-d", device, QString("--set-ctrl=gain=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setGainArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setGainArgs);
-    process.waitForFinished();
-}
-
-void MainWindow::setSharpness(int value)
-{
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setSharpnessArgs = {"-d", device, QString("--set-ctrl=sharpness=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setSharpnessArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setSharpnessArgs);
-    process.waitForFinished();
+    const QString device = ui->camera1ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerGain(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=gain=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
 
 void MainWindow::setBrightness2(int value)
 {
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setBrightnessArgs = {"-d", device, QString("--set-ctrl=brightness=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setBrightnessArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setBrightnessArgs);
-    process.waitForFinished();
+    const QString device = ui->camera2ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerBrightness2(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=brightness=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
-
 void MainWindow::setContrast2(int value)
 {
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setContrastArgs = {"-d", device, QString("--set-ctrl=contrast=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setContrastArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setContrastArgs);
-    process.waitForFinished();
+    const QString device = ui->camera2ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerContrast2(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=contrast=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
-
 void MainWindow::setSaturation2(int value)
 {
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setSaturationArgs = {"-d", device, QString("--set-ctrl=saturation=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setSaturationArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setSaturationArgs);
-    process.waitForFinished();
+    const QString device = ui->camera2ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerSaturation2(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=saturation=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
-
 void MainWindow::setGain2(int value)
 {
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setGainArgs = {"-d", device, QString("--set-ctrl=gain=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setGainArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setGainArgs);
-    process.waitForFinished();
-}
-
-void MainWindow::setSharpness2(int value)
-{
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setSharpnessArgs = {"-d", device, QString("--set-ctrl=sharpness=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setSharpnessArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setSharpnessArgs);
-    process.waitForFinished();
+    const QString device = ui->camera2ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerGain2(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=gain=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
 
 void MainWindow::setExposure(int value)
 {
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setExposureArgs = {"-d", device, QString("--set-ctrl=exposure_time_absolute=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setExposureArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setExposureArgs);
-    process.waitForFinished();
+    const QString device = ui->camera1ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerExposureTime(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=exposure_time_absolute=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
-
 void MainWindow::setExposure2(int value)
 {
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setExposureArgs = {"-d", device, QString("--set-ctrl=exposure_time_absolute=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setExposureArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setExposureArgs);
-    process.waitForFinished();
+    const QString device = ui->camera2ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerExposureTime2(value);
+    else {
+        QStringList args = {"-d", device, QString("--set-ctrl=exposure_time_absolute=%1").arg(value)};
+        QProcess p; p.start("v4l2-ctl", args); p.waitForFinished();
+    }
 }
 
-void MainWindow::setWhiteBalanceTemperature(int value)
+// ---- Edycja pól tekstowych -> suwaki ----
+void MainWindow::on_brightnessEdit_textChanged(const QString &v) { ui->brightnessSlider->setValue(v.toInt()); }
+void MainWindow::on_contrastEdit_textChanged(const QString &v)   { ui->contrastSlider->setValue(v.toInt()); }
+void MainWindow::on_saturationEdit_textChanged(const QString &v) { ui->saturationSlider->setValue(v.toInt()); }
+void MainWindow::on_gainEdit_textChanged(const QString &v)       { ui->gainSlider->setValue(v.toInt()); }
+
+void MainWindow::on_brightnessEdit2_textChanged(const QString &v){ ui->brightnessSlider2->setValue(v.toInt()); }
+void MainWindow::on_contrastEdit2_textChanged(const QString &v)  { ui->contrastSlider2->setValue(v.toInt()); }
+void MainWindow::on_saturationEdit2_textChanged(const QString &v){ ui->saturationSlider2->setValue(v.toInt()); }
+void MainWindow::on_gainEdit2_textChanged(const QString &v)      { ui->gainSlider2->setValue(v.toInt()); }
+
+void MainWindow::on_exposureEdit_textChanged(const QString &v)   { ui->exposureSlider->setValue(v.toInt()); }
+void MainWindow::on_exposureEdit2_textChanged(const QString &v)  { ui->exposureSlider2->setValue(v.toInt()); }
+
+// ---- Basler: enumeracja urządzeń (bez PylonInitialize/Terterminate tutaj!) ----
+QStringList MainWindow::getBaslerCameras()
 {
-    QString device = ui->camera1ComboBox->currentText();
-    
-    // Najpierw wyłączamy automatyczny balans bieli
-    QStringList disableAutoWhiteBalanceArgs = {"-d", device, "--set-ctrl=white_balance_automatic=0"};
-    QProcess processDisableAuto;
-    processDisableAuto.start("v4l2-ctl", disableAutoWhiteBalanceArgs);
-    processDisableAuto.waitForFinished();
-    
-    // Teraz ustawiamy temperaturę balansu bieli
-    QStringList setWhiteBalanceArgs = {"-d", device, QString("--set-ctrl=white_balance_temperature=%1").arg(value)};
-    QProcess process;
-    process.start("v4l2-ctl", setWhiteBalanceArgs);
-    process.waitForFinished();
-    
-    // Aktualizujemy pole tekstowe
-    ui->whiteBalanceEdit->setText(QString::number(value));
-    
-    qDebug() << "Setting white balance temperature for camera 1:" << value;
+    QStringList baslerCameras;
+    try {
+        Pylon::CTlFactory& tlFactory = Pylon::CTlFactory::GetInstance();
+        Pylon::DeviceInfoList_t devices;
+        tlFactory.EnumerateDevices(devices);
+
+        for (const auto& device : devices) {
+            const QString serialNumber = QString::fromStdString(std::string(device.GetSerialNumber()));
+            const QString modelName   = QString::fromStdString(std::string(device.GetModelName()));
+            baslerCameras << QString("%1 (%2)").arg(modelName).arg(serialNumber);
+        }
+    } catch (const Pylon::GenericException& e) {
+        qWarning() << "Failed to enumerate Basler cameras:" << e.GetDescription();
+    }
+    return baslerCameras;
 }
 
-void MainWindow::setWhiteBalanceTemperature2(int value)
+void MainWindow::populateBaslerCameraList()
 {
-    QString device = ui->camera2ComboBox->currentText();
-    
-    // Najpierw wyłączamy automatyczny balans bieli
-    QStringList disableAutoWhiteBalanceArgs = {"-d", device, "--set-ctrl=white_balance_automatic=0"};
-    QProcess processDisableAuto;
-    processDisableAuto.start("v4l2-ctl", disableAutoWhiteBalanceArgs);
-    processDisableAuto.waitForFinished();
-    
-    // Teraz ustawiamy temperaturę balansu bieli
-    QStringList setWhiteBalanceArgs = {"-d", device, QString("--set-ctrl=white_balance_temperature=%1").arg(value)};
-    QProcess process;
-    process.start("v4l2-ctl", setWhiteBalanceArgs);
-    process.waitForFinished();
-    
-    // Aktualizujemy pole tekstowe
-    ui->whiteBalanceEdit2->setText(QString::number(value));
-    
-    qDebug() << "Setting white balance temperature for camera 2:" << value;
+    const QStringList baslerCameras = getBaslerCameras();
+    Q_UNUSED(baslerCameras);
+    // Jeśli chcesz, możesz dodać te pozycje do osobnych comboboxów.
 }
 
-void MainWindow::updateZoomLabel(int value)
+// ---- Basler: settery mapowane na suwaki ----
+void MainWindow::setBaslerExposureTime(int value)
 {
-    ui->zoomLabel->setText(QString("Zoom: %1").arg(value));
+    if (!baslerCameraThreads.isEmpty()) baslerCameraThreads[0]->setExposureTime(double(value));
 }
-
-void MainWindow::updateFocusMinLabel(int value)
+void MainWindow::setBaslerExposureTime2(int value)
 {
-    ui->focusMinLabel->setText(QString("Focus Min: %1").arg(value));
+    if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setExposureTime(double(value));
 }
-
-void MainWindow::updateZoomLabel2(int value)
+void MainWindow::setBaslerGain(int value)
 {
-    ui->zoomLabel2->setText(QString("Zoom: %1").arg(value));
+    if (!baslerCameraThreads.isEmpty()) baslerCameraThreads[0]->setGain(value * 0.001);
 }
-
-void MainWindow::updateFocusMinLabel2(int value)
+void MainWindow::setBaslerGain2(int value)
 {
-    ui->focusMinLabel2->setText(QString("Focus Min: %1").arg(value));
+    if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setGain(value * 0.001);
 }
-
-void MainWindow::on_brightnessEdit_textChanged(const QString &value)
+void MainWindow::setBaslerPixelFormat(const QString& format)
 {
-    ui->brightnessSlider->setValue(value.toInt());
+    for (BaslerCameraThread* t : baslerCameraThreads) t->setPixelFormat(format);
 }
-
-void MainWindow::on_contrastEdit_textChanged(const QString &value)
+void MainWindow::setBaslerPixelFormat2(const QString& format)
 {
-    ui->contrastSlider->setValue(value.toInt());
+    if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setPixelFormat(format);
 }
-
-void MainWindow::on_saturationEdit_textChanged(const QString &value)
+void MainWindow::setBaslerTriggerMode(bool enabled)
 {
-    ui->saturationSlider->setValue(value.toInt());
+    for (BaslerCameraThread* t : baslerCameraThreads) t->setTriggerMode(enabled);
 }
-
-void MainWindow::on_gainEdit_textChanged(const QString &value)
+void MainWindow::setBaslerTriggerMode2(bool enabled)
 {
-    ui->gainSlider->setValue(value.toInt());
+    if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setTriggerMode(enabled);
 }
-
-void MainWindow::on_sharpnessEdit_textChanged(const QString &value)
+void MainWindow::setBaslerBrightness(int value)
 {
-    ui->sharpnessSlider->setValue(value.toInt());
+    if (!baslerCameraThreads.isEmpty()) baslerCameraThreads[0]->setBrightness(value * 0.004);
 }
-
-void MainWindow::on_brightnessEdit2_textChanged(const QString &value)
+void MainWindow::setBaslerContrast(int value)
 {
-    ui->brightnessSlider2->setValue(value.toInt());
+    if (!baslerCameraThreads.isEmpty()) baslerCameraThreads[0]->setContrast(value * 0.004);
 }
-
-void MainWindow::on_contrastEdit2_textChanged(const QString &value)
+void MainWindow::setBaslerSaturation(int value)
 {
-    ui->contrastSlider2->setValue(value.toInt());
+    if (!baslerCameraThreads.isEmpty()) baslerCameraThreads[0]->setSaturation(value * 0.004);
 }
-
-void MainWindow::on_saturationEdit2_textChanged(const QString &value)
+void MainWindow::setBaslerBrightness2(int value)
 {
-    ui->saturationSlider2->setValue(value.toInt());
+    if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setBrightness(value * 0.004);
 }
-
-void MainWindow::on_gainEdit2_textChanged(const QString &value)
+void MainWindow::setBaslerContrast2(int value)
 {
-    ui->gainSlider2->setValue(value.toInt());
+    if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setContrast(value * 0.004);
 }
-
-void MainWindow::on_sharpnessEdit2_textChanged(const QString &value)
+void MainWindow::setBaslerSaturation2(int value)
 {
-    ui->sharpnessSlider2->setValue(value.toInt());
+    if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setSaturation(value * 0.004);
 }
 
-void MainWindow::on_exposureEdit_textChanged(const QString &value)
+void MainWindow::setupBaslerSliderDefaults()
 {
-    ui->exposureSlider->setValue(value.toInt());
+    ui->exposureSlider->setRange(27, 1000000);
+    ui->exposureSlider->setValue(15000);
+    ui->exposureSlider2->setRange(27, 1000000);
+    ui->exposureSlider2->setValue(15000);
+
+    ui->gainSlider->setRange(0, 48000);
+    ui->gainSlider->setValue(0);
+    ui->gainSlider2->setRange(0, 48000);
+    ui->gainSlider2->setValue(0);
+
+    ui->saturationSlider->setRange(0, 500);
+    ui->saturationSlider->setValue(250);
+    ui->saturationSlider2->setRange(0, 500);
+    ui->saturationSlider2->setValue(250);
+
+    ui->contrastSlider->setRange(-250, 250);
+    ui->contrastSlider->setValue(0);
+    ui->contrastSlider2->setRange(-250, 250);
+    ui->contrastSlider2->setValue(0);
+
+    ui->brightnessSlider->setRange(-250, 250);
+    ui->brightnessSlider->setValue(0);
+    ui->brightnessSlider2->setRange(-250, 250);
+    ui->brightnessSlider2->setValue(0);
+
+    ui->brightnessSlider->setSingleStep(1);
+    ui->contrastSlider->setSingleStep(1);
+    ui->saturationSlider->setSingleStep(1);
+    ui->gainSlider->setSingleStep(1);
+    ui->exposureSlider->setSingleStep(1);
+
+    ui->brightnessSlider2->setSingleStep(1);
+    ui->contrastSlider2->setSingleStep(1);
+    ui->saturationSlider2->setSingleStep(1);
+    ui->gainSlider2->setSingleStep(1);
+    ui->exposureSlider2->setSingleStep(1);
+
+    ui->brightnessEdit->setText("0");
+    ui->contrastEdit->setText("0");
+    ui->saturationEdit->setText("250");
+    ui->gainEdit->setText("0");
+    ui->exposureEdit->setText("15000");
+
+    ui->brightnessEdit2->setText("0");
+    ui->contrastEdit2->setText("0");
+    ui->saturationEdit2->setText("250");
+    ui->gainEdit2->setText("0");
+    ui->exposureEdit2->setText("15000");
 }
 
-void MainWindow::on_exposureEdit2_textChanged(const QString &value)
+void MainWindow::onDisplayModeChanged(int index)
 {
-    ui->exposureSlider2->setValue(value.toInt());
+    currentDisplayMode = index;
+    if (index == 1) {
+        if (!concatenatedWindow) concatenatedWindow = new ConcatenatedWindow(this);
+        concatenatedWindow->show();
+        ui->camera1Label->hide();
+        ui->camera2Label->hide();
+    } else {
+        if (concatenatedWindow) concatenatedWindow->hide();
+        ui->camera1Label->show();
+        ui->camera2Label->show();
+    }
 }
-
-void MainWindow::on_whiteBalanceEdit_textChanged(const QString &value)
-{
-    ui->whiteBalanceSlider->setValue(value.toInt());
-}
-
-void MainWindow::on_whiteBalanceEdit2_textChanged(const QString &value)
-{
-    ui->whiteBalanceSlider2->setValue(value.toInt());
-}
-
-void MainWindow::updateWhiteBalanceLabel(int value)
-{
-    // Aktualizacja etykiety dla white balance kamery 1
-    ui->label_19->setText(QString("White temp: %1").arg(value));
-}
-
-void MainWindow::updateWhiteBalanceLabel2(int value)
-{
-    // Aktualizacja etykiety dla white balance kamery 2
-    ui->label_20->setText(QString("White temp: %1").arg(value));
-}
-
-void MainWindow::setPowerLineFrequency(int value)
-{
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setPowerLineFrequencyArgs = {"-d", device, QString("--set-ctrl=power_line_frequency=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setPowerLineFrequencyArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setPowerLineFrequencyArgs);
-    process.waitForFinished();
-    
-    // Aktualizujemy pole tekstowe
-    ui->powerLineFrequencyEdit->setText(QString::number(value));
-}
-
-void MainWindow::setPowerLineFrequency2(int value)
-{
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setPowerLineFrequencyArgs = {"-d", device, QString("--set-ctrl=power_line_frequency=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setPowerLineFrequencyArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setPowerLineFrequencyArgs);
-    process.waitForFinished();
-    
-    // Aktualizujemy pole tekstowe
-    ui->powerLineFrequencyEdit2->setText(QString::number(value));
-}
-
-void MainWindow::setBacklightCompensation(int value)
-{
-    QString device = ui->camera1ComboBox->currentText();
-    QStringList setBacklightCompensationArgs = {"-d", device, QString("--set-ctrl=backlight_compensation=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setBacklightCompensationArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setBacklightCompensationArgs);
-    process.waitForFinished();
-    
-    // Aktualizujemy pole tekstowe
-    ui->backlightCompensationEdit->setText(QString::number(value));
-}
-
-void MainWindow::setBacklightCompensation2(int value)
-{
-    QString device = ui->camera2ComboBox->currentText();
-    QStringList setBacklightCompensationArgs = {"-d", device, QString("--set-ctrl=backlight_compensation=%1").arg(value)};
-
-    qDebug() << "Executing command:" << "v4l2-ctl" << setBacklightCompensationArgs;
-    QProcess process;
-    process.start("v4l2-ctl", setBacklightCompensationArgs);
-    process.waitForFinished();
-    
-    // Aktualizujemy pole tekstowe
-    ui->backlightCompensationEdit2->setText(QString::number(value));
-}
-
-void MainWindow::on_powerLineFrequencyEdit_textChanged(const QString &value)
-{
-    ui->powerLineFrequencySlider->setValue(value.toInt());
-}
-
-void MainWindow::on_powerLineFrequencyEdit2_textChanged(const QString &value)
-{
-    ui->powerLineFrequencySlider2->setValue(value.toInt());
-}
-
-void MainWindow::on_backlightCompensationEdit_textChanged(const QString &value)
-{
-    ui->backlightCompensationSlider->setValue(value.toInt());
-}
-
-void MainWindow::on_backlightCompensationEdit2_textChanged(const QString &value)
-{
-    ui->backlightCompensationSlider2->setValue(value.toInt());
-}
-
-
-

@@ -293,14 +293,27 @@ void CameraThread::stopPipeline()
 
 void CameraThread::startRecording()
 {
+    qDebug() << "CameraThread: Rozpoczynam nagrywanie...";
+    qDebug() << "  - Urządzenie:" << device;
+    qDebug() << "  - Rozdzielczość:" << resolution;
+    qDebug() << "  - FPS:" << fps;
+    qDebug() << "  - Format:" << format;
+    qDebug() << "  - Katalog zapisu:" << saveDirectory;
+    
     stopPipeline(); // Zatrzymaj aktualny pipeline przed rozpoczęciem nagrywania
     startPipeline(true);
+    
+    qDebug() << "CameraThread: Nagrywanie rozpoczęte pomyślnie";
 }
 
 void CameraThread::stopRecording()
 {
+    qDebug() << "CameraThread: Zatrzymuję nagrywanie...";
+    
     stopPipeline();
     startPipeline(); // Restart pipeline bez nagrywania
+    
+    qDebug() << "CameraThread: Nagrywanie zatrzymane pomyślnie";
 }
 
 

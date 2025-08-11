@@ -44,6 +44,29 @@
      </rect>
     </property>
    </widget>
+   <widget class="QLabel" name="displayModeLabel">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>140</y>
+      <width>120</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Display Mode</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="displayModeComboBox">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>170</y>
+      <width>120</width>
+      <height>25</height>
+     </rect>
+    </property>
+   </widget>
    <widget class="QSpinBox" name="fpsSpinBox">
     <property name="geometry">
      <rect>
@@ -54,10 +77,10 @@
      </rect>
     </property>
     <property name="minimum">
-     <number>30</number>
+     <number>45</number>
     </property>
     <property name="maximum">
-     <number>30</number>
+     <number>45</number>
     </property>
    </widget>
    <widget class="QPushButton" name="startButton">
@@ -114,8 +137,8 @@
    <widget class="QComboBox" name="camera1ComboBox">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>210</y>
+      <x>220</x>
+      <y>320</y>
       <width>86</width>
       <height>25</height>
      </rect>
@@ -124,8 +147,8 @@
    <widget class="QComboBox" name="camera2ComboBox">
     <property name="geometry">
      <rect>
-      <x>840</x>
-      <y>210</y>
+      <x>850</x>
+      <y>320</y>
       <width>86</width>
       <height>25</height>
      </rect>
@@ -183,101 +206,11 @@
      <string>Select Dir</string>
     </property>
    </widget>
-   <widget class="QSlider" name="focusMinSlider">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>300</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="maximum">
-     <number>255</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QSlider" name="focusMinSlider2">
-    <property name="geometry">
-     <rect>
-      <x>810</x>
-      <y>290</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="maximum">
-     <number>255</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="focusMinLabel2">
-    <property name="geometry">
-     <rect>
-      <x>696</x>
-      <y>290</y>
-      <width>91</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="focusMinLabel">
-    <property name="geometry">
-     <rect>
-      <x>56</x>
-      <y>300</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="zoomSlider">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>340</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>100</number>
-    </property>
-    <property name="maximum">
-     <number>500</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="zoomLabel">
-    <property name="geometry">
-     <rect>
-      <x>56</x>
-      <y>340</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>250</y>
+      <x>220</x>
+      <y>360</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -294,8 +227,8 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>840</x>
-      <y>240</y>
+      <x>850</x>
+      <y>350</y>
       <width>131</width>
       <height>41</height>
      </rect>
@@ -361,43 +294,11 @@
      <string>Frame Rate</string>
     </property>
    </widget>
-   <widget class="QSlider" name="zoomSlider2">
-    <property name="geometry">
-     <rect>
-      <x>810</x>
-      <y>330</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>100</number>
-    </property>
-    <property name="maximum">
-     <number>500</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="zoomLabel2">
-    <property name="geometry">
-     <rect>
-      <x>696</x>
-      <y>330</y>
-      <width>91</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
-   </widget>
    <widget class="QSlider" name="brightnessSlider">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>380</y>
+      <x>190</x>
+      <y>450</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -412,8 +313,8 @@
    <widget class="QSlider" name="contrastSlider">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>410</y>
+      <x>190</x>
+      <y>480</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -428,8 +329,8 @@
    <widget class="QSlider" name="saturationSlider">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>440</y>
+      <x>190</x>
+      <y>510</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -444,8 +345,8 @@
    <widget class="QSlider" name="gainSlider">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>470</y>
+      <x>190</x>
+      <y>540</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -460,8 +361,8 @@
    <widget class="QLabel" name="label_7">
     <property name="geometry">
      <rect>
-      <x>90</x>
-      <y>380</y>
+      <x>100</x>
+      <y>450</y>
       <width>81</width>
       <height>20</height>
      </rect>
@@ -473,8 +374,8 @@
    <widget class="QLabel" name="label_8">
     <property name="geometry">
      <rect>
-      <x>90</x>
-      <y>410</y>
+      <x>100</x>
+      <y>480</y>
       <width>61</width>
       <height>20</height>
      </rect>
@@ -486,8 +387,8 @@
    <widget class="QLabel" name="label_9">
     <property name="geometry">
      <rect>
-      <x>90</x>
-      <y>440</y>
+      <x>100</x>
+      <y>510</y>
       <width>81</width>
       <height>20</height>
      </rect>
@@ -499,8 +400,8 @@
    <widget class="QLabel" name="label_10">
     <property name="geometry">
      <rect>
-      <x>110</x>
-      <y>470</y>
+      <x>120</x>
+      <y>540</y>
       <width>41</width>
       <height>20</height>
      </rect>
@@ -512,8 +413,8 @@
    <widget class="QLabel" name="label_11">
     <property name="geometry">
      <rect>
-      <x>740</x>
-      <y>460</y>
+      <x>750</x>
+      <y>530</y>
       <width>41</width>
       <height>20</height>
      </rect>
@@ -525,8 +426,8 @@
    <widget class="QSlider" name="gainSlider2">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>460</y>
+      <x>820</x>
+      <y>530</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -541,8 +442,8 @@
    <widget class="QSlider" name="saturationSlider2">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>430</y>
+      <x>820</x>
+      <y>500</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -557,8 +458,8 @@
    <widget class="QSlider" name="contrastSlider2">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>400</y>
+      <x>820</x>
+      <y>470</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -573,8 +474,8 @@
    <widget class="QLabel" name="label_12">
     <property name="geometry">
      <rect>
-      <x>720</x>
-      <y>370</y>
+      <x>730</x>
+      <y>440</y>
       <width>81</width>
       <height>20</height>
      </rect>
@@ -586,8 +487,8 @@
    <widget class="QLabel" name="label_13">
     <property name="geometry">
      <rect>
-      <x>720</x>
-      <y>400</y>
+      <x>730</x>
+      <y>470</y>
       <width>61</width>
       <height>20</height>
      </rect>
@@ -599,8 +500,8 @@
    <widget class="QLabel" name="label_14">
     <property name="geometry">
      <rect>
-      <x>720</x>
-      <y>430</y>
+      <x>730</x>
+      <y>500</y>
       <width>81</width>
       <height>20</height>
      </rect>
@@ -612,8 +513,8 @@
    <widget class="QSlider" name="brightnessSlider2">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>370</y>
+      <x>820</x>
+      <y>440</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -628,8 +529,8 @@
    <widget class="QLineEdit" name="brightnessEdit">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>380</y>
+      <x>370</x>
+      <y>450</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -638,8 +539,8 @@
    <widget class="QLineEdit" name="contrastEdit">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>410</y>
+      <x>370</x>
+      <y>480</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -648,8 +549,8 @@
    <widget class="QLineEdit" name="saturationEdit">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>440</y>
+      <x>370</x>
+      <y>510</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -658,8 +559,8 @@
    <widget class="QLineEdit" name="gainEdit">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>470</y>
+      <x>370</x>
+      <y>540</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -668,8 +569,8 @@
    <widget class="QLineEdit" name="gainEdit2">
     <property name="geometry">
      <rect>
-      <x>990</x>
-      <y>450</y>
+      <x>1000</x>
+      <y>520</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -678,8 +579,8 @@
    <widget class="QLineEdit" name="saturationEdit2">
     <property name="geometry">
      <rect>
-      <x>990</x>
-      <y>420</y>
+      <x>1000</x>
+      <y>490</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -688,8 +589,8 @@
    <widget class="QLineEdit" name="brightnessEdit2">
     <property name="geometry">
      <rect>
-      <x>990</x>
-      <y>360</y>
+      <x>1000</x>
+      <y>430</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -698,96 +599,18 @@
    <widget class="QLineEdit" name="contrastEdit2">
     <property name="geometry">
      <rect>
-      <x>990</x>
-      <y>390</y>
+      <x>1000</x>
+      <y>460</y>
       <width>31</width>
       <height>25</height>
      </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_15">
-    <property name="geometry">
-     <rect>
-      <x>90</x>
-      <y>500</y>
-      <width>81</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Sharpness</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="sharpnessSlider">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>500</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="maximum">
-     <number>255</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="sharpnessEdit">
-    <property name="geometry">
-     <rect>
-      <x>360</x>
-      <y>500</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QSlider" name="sharpnessSlider2">
-    <property name="geometry">
-     <rect>
-      <x>810</x>
-      <y>490</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="maximum">
-     <number>255</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="sharpnessEdit2">
-    <property name="geometry">
-     <rect>
-      <x>990</x>
-      <y>480</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_16">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>490</y>
-      <width>81</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Sharpness</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="exposureEdit">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>530</y>
+      <x>370</x>
+      <y>570</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -796,8 +619,8 @@
    <widget class="QSlider" name="exposureSlider">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>530</y>
+      <x>190</x>
+      <y>570</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -815,8 +638,8 @@
    <widget class="QLabel" name="label_17">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>530</y>
+      <x>80</x>
+      <y>570</y>
       <width>101</width>
       <height>20</height>
      </rect>
@@ -828,8 +651,8 @@
    <widget class="QLineEdit" name="exposureEdit2">
     <property name="geometry">
      <rect>
-      <x>990</x>
-      <y>520</y>
+      <x>1000</x>
+      <y>550</y>
       <width>31</width>
       <height>25</height>
      </rect>
@@ -838,8 +661,8 @@
    <widget class="QSlider" name="exposureSlider2">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>520</y>
+      <x>820</x>
+      <y>550</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -857,272 +680,14 @@
    <widget class="QLabel" name="label_18">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>520</y>
+      <x>710</x>
+      <y>550</y>
       <width>101</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
      <string>Exposure time</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="whiteBalanceEdit">
-    <property name="geometry">
-     <rect>
-      <x>360</x>
-      <y>570</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QSlider" name="whiteBalanceSlider">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>570</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>2000</number>
-    </property>
-    <property name="maximum">
-     <number>7500</number>
-    </property>
-    <property name="singleStep">
-     <number>10</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_19">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>570</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>White temp</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_20">
-    <property name="geometry">
-     <rect>
-      <x>700</x>
-      <y>560</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>White temp</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="whiteBalanceSlider2">
-    <property name="geometry">
-     <rect>
-      <x>810</x>
-      <y>560</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>2000</number>
-    </property>
-    <property name="maximum">
-     <number>7500</number>
-    </property>
-    <property name="singleStep">
-     <number>10</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="whiteBalanceEdit2">
-    <property name="geometry">
-     <rect>
-      <x>990</x>
-      <y>560</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_21">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>600</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Power line freq.</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="powerLineFrequencySlider">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>600</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>2</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="powerLineFrequencyEdit">
-    <property name="geometry">
-     <rect>
-      <x>360</x>
-      <y>600</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_22">
-    <property name="geometry">
-     <rect>
-      <x>700</x>
-      <y>600</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Power line freq.</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="powerLineFrequencySlider2">
-    <property name="geometry">
-     <rect>
-      <x>810</x>
-      <y>600</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>2</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="powerLineFrequencyEdit2">
-    <property name="geometry">
-     <rect>
-      <x>990</x>
-      <y>600</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_23">
-    <property name="geometry">
-     <rect>
-      <x>50</x>
-      <y>630</y>
-      <width>121</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Backlight comp.</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="backlightCompensationSlider">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>630</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>1</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="backlightCompensationEdit">
-    <property name="geometry">
-     <rect>
-      <x>360</x>
-      <y>630</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_24">
-    <property name="geometry">
-     <rect>
-      <x>680</x>
-      <y>630</y>
-      <width>121</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Backlight comp.</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="backlightCompensationSlider2">
-    <property name="geometry">
-     <rect>
-      <x>810</x>
-      <y>630</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>1</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Orientation::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="backlightCompensationEdit2">
-    <property name="geometry">
-     <rect>
-      <x>990</x>
-      <y>630</y>
-      <width>31</width>
-      <height>25</height>
-     </rect>
     </property>
    </widget>
   </widget>

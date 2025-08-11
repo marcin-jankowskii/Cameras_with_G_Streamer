@@ -10,10 +10,16 @@ CONFIG += c++17
 
 SOURCES += \
     camerathread.cpp \
+    baslercamerathread.cpp \
+    concatenatedwindow.cpp \
+    framewriter.cpp \
     main.cpp \
     mainwindow.cpp
 HEADERS += \
     camerathread.h \
+    baslercamerathread.h \
+    concatenatedwindow.h \
+    framewriter.h \
     mainwindow.h
 
 FORMS += \
@@ -28,5 +34,9 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 INCLUDEPATH += /usr/include/gstreamer-1.0
 INCLUDEPATH += /usr/include/glib-2.0
 INCLUDEPATH += /usr/lib/x86_64-linux-gnu/glib-2.0/include
+
+# Pylon SDK
+INCLUDEPATH += /opt/pylon/include
+LIBS += -L/opt/pylon/lib -lpylonbase -lpylonutility -lGenApi_gcc_v3_1_Basler_pylon -lGCBase_gcc_v3_1_Basler_pylon -lNodeMapData_gcc_v3_1_Basler_pylon
 
 LIBS += -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lgstvideo-1.0 -lgstapp-1.0
