@@ -41,20 +41,43 @@ private slots:
     void setSaturation2(int value);
     void setGain2(int value);
 
+    // Camera 3/4 controls
+    void setBrightness3(int value);
+    void setContrast3(int value);
+    void setSaturation3(int value);
+    void setGain3(int value);
+
+    void setBrightness4(int value);
+    void setContrast4(int value);
+    void setSaturation4(int value);
+    void setGain4(int value);
+
     void setExposure(int value);     // For camera 1
     void setExposure2(int value);    // For camera 2
+    void setExposure3(int value);    // For camera 3
+    void setExposure4(int value);    // For camera 4
 
     // Basler camera functions
     void setBaslerExposureTime(int value);
     void setBaslerExposureTime2(int value);
+    void setBaslerExposureTime3(int value);
+    void setBaslerExposureTime4(int value);
     void setBaslerGain(int value);
     void setBaslerGain2(int value);
+    void setBaslerGain3(int value);
+    void setBaslerGain4(int value);
     void setBaslerBrightness(int value);
     void setBaslerBrightness2(int value);
+    void setBaslerBrightness3(int value);
+    void setBaslerBrightness4(int value);
     void setBaslerContrast(int value);
     void setBaslerContrast2(int value);
+    void setBaslerContrast3(int value);
+    void setBaslerContrast4(int value);
     void setBaslerSaturation(int value);
     void setBaslerSaturation2(int value);
+    void setBaslerSaturation3(int value);
+    void setBaslerSaturation4(int value);
     void setBaslerPixelFormat(const QString& format);
     void setBaslerPixelFormat2(const QString& format);
     void setBaslerTriggerMode(bool enabled);
@@ -72,12 +95,30 @@ private slots:
     void on_saturationEdit2_textChanged(const QString &value);
     void on_gainEdit2_textChanged(const QString &value);
 
+    // text edits for camera 3/4
+    void on_brightnessEdit3_textChanged(const QString &value);
+    void on_contrastEdit3_textChanged(const QString &value);
+    void on_saturationEdit3_textChanged(const QString &value);
+    void on_gainEdit3_textChanged(const QString &value);
+    void on_brightnessEdit4_textChanged(const QString &value);
+    void on_contrastEdit4_textChanged(const QString &value);
+    void on_saturationEdit4_textChanged(const QString &value);
+    void on_gainEdit4_textChanged(const QString &value);
+
     void on_exposureEdit_textChanged(const QString &value);   // For camera 1
     void on_exposureEdit2_textChanged(const QString &value);  // For camera 2
+    void on_exposureEdit3_textChanged(const QString &value);  // For camera 3
+    void on_exposureEdit4_textChanged(const QString &value);  // For camera 4
 
     void updateCamera1Image(const QImage& img);
     void updateCamera2Image(const QImage& img);
+    // new for 3rd and 4th cameras
+    void updateCamera3Image(const QImage& img);
+    void updateCamera4Image(const QImage& img);
     void onDisplayModeChanged(int index);
+
+    // zależność widoczności od liczby kamer
+    void onCameraCountChanged(int index);
 
 private:
     Ui::MainWindow *ui;
@@ -91,6 +132,7 @@ private:
     QStringList getBaslerCameras();
     void populateBaslerCameraList();
     void setupBaslerSliderDefaults();
+    void applyCameraCountVisibility();
 };
 
 #endif // MAINWINDOW_H

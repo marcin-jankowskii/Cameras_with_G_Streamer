@@ -1,0 +1,34 @@
+14:36:54: Starting /home/marceli/Downloads/Cameras_with_G_Streamer-main/build/Desktop_Qt_6_7_2-Debug/2kamery_gstreameer...
+Chunk enable failed: Feature 'ChunkSelector' : cannot convert value 'Framecounter', the value is invalid.
+Chunk enable failed: Feature 'ChunkSelector' : cannot convert value 'Framecounter', the value is invalid.
+MainWindow: Rozpoczynam nagrywanie wszystkich kamer...
+  - Liczba kamer V4L2: 0
+  - Liczba kamer Basler: 2
+  - Katalog zapisu: "/home/marceli/Documents/test9"
+BaslerCameraThread: Rozpoczynam nagrywanie...
+  - Katalog zapisu: "/home/marceli/Documents/test9/camera1"
+  - Format: "RAW"
+  - Serial number: "40334460"
+FrameWriter: session started -> "/home/marceli/Documents/test9/camera1/cam_40334460_20250811_143745699.raw"
+BaslerCameraThread: Nagrywanie rozpoczęte pomyślnie
+BaslerCameraThread: Rozpoczynam nagrywanie...
+  - Katalog zapisu: "/home/marceli/Documents/test9/camera2"
+  - Format: "RAW"
+  - Serial number: "40334462"
+FrameWriter: session started -> "/home/marceli/Documents/test9/camera2/cam_40334462_20250811_143745701.raw"
+BaslerCameraThread: Nagrywanie rozpoczęte pomyślnie
+MainWindow: Nagrywanie rozpoczęte pomyślnie
+MainWindow: Zatrzymuję nagrywanie wszystkich kamer...
+  - Liczba kamer V4L2: 0
+  - Liczba kamer Basler: 2
+BaslerCameraThread: Zatrzymuję nagrywanie...
+  - Przetworzone klatki: 424
+  - Porzucone klatki: 0
+FrameWriter: session closed
+BaslerCameraThread: Nagrywanie zatrzymane pomyślnie
+BaslerCameraThread: Zatrzymuję nagrywanie...
+  - Przetworzone klatki: 424
+  - Porzucone klatki: 0
+FrameWriter: session closed
+BaslerCameraThread: Nagrywanie zatrzymane pomyślnie
+MainWindow: Nagrywanie zatrzymane pomyślnie

@@ -48,7 +48,7 @@ private:
     void startCamera();
     void monitorPerformance();
     QImage convertToQImage(const Pylon::CGrabResultPtr& grabResult);
-    void pushRawToWriter(const Pylon::CGrabResultPtr& grabResult, quint64 ts);
+    void pushRawToWriter(const Pylon::CGrabResultPtr& grabResult, quint64 ts, quint64 frameCounter = 0);
     void pushJpegToWriter(const QImage& img, quint64 ts);
 
 private:

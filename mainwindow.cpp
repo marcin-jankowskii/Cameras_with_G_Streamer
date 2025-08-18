@@ -22,7 +22,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // UI
-    ui->cameraCountComboBox->addItems({"1", "2"});
+    ui->cameraCountComboBox->addItems({"1", "2", "3", "4"});
     ui->resolutionComboBox->addItems({
         "640x480", "160x120", "176x144", "320x180", "320x240", "352x288", "424x240",
         "480x270", "640x360", "800x448", "800x600", "848x480", "960x540",
@@ -43,6 +43,9 @@ MainWindow::MainWindow(QWidget *parent)
     populateCameraList();
     populateBaslerCameraList();
 
+    // reaguj na zmianę liczby kamer
+    connect(ui->cameraCountComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onCameraCountChanged);
+
     // Suwaki i pola edycyjne
     connect(ui->brightnessSlider,  &QSlider::valueChanged, this, &MainWindow::setBrightness);
     connect(ui->contrastSlider,    &QSlider::valueChanged, this, &MainWindow::setContrast);
@@ -54,8 +57,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->saturationSlider2, &QSlider::valueChanged, this, &MainWindow::setSaturation2);
     connect(ui->gainSlider2,       &QSlider::valueChanged, this, &MainWindow::setGain2);
 
+    // Nowe połączenia dla kamer 3 i 4 (jeśli istnieją w UI)
+    if (ui->brightnessSlider3) connect(ui->brightnessSlider3, &QSlider::valueChanged, this, &MainWindow::setBrightness3);
+    if (ui->contrastSlider3)   connect(ui->contrastSlider3,   &QSlider::valueChanged, this, &MainWindow::setContrast3);
+    if (ui->saturationSlider3) connect(ui->saturationSlider3, &QSlider::valueChanged, this, &MainWindow::setSaturation3);
+    if (ui->gainSlider3)       connect(ui->gainSlider3,       &QSlider::valueChanged, this, &MainWindow::setGain3);
+
+    if (ui->brightnessSlider4) connect(ui->brightnessSlider4, &QSlider::valueChanged, this, &MainWindow::setBrightness4);
+    if (ui->contrastSlider4)   connect(ui->contrastSlider4,   &QSlider::valueChanged, this, &MainWindow::setContrast4);
+    if (ui->saturationSlider4) connect(ui->saturationSlider4, &QSlider::valueChanged, this, &MainWindow::setSaturation4);
+    if (ui->gainSlider4)       connect(ui->gainSlider4,       &QSlider::valueChanged, this, &MainWindow::setGain4);
+
     connect(ui->exposureSlider,    &QSlider::valueChanged, this, &MainWindow::setExposure);
     connect(ui->exposureSlider2,   &QSlider::valueChanged, this, &MainWindow::setExposure2);
+    if (ui->exposureSlider3) connect(ui->exposureSlider3, &QSlider::valueChanged, this, &MainWindow::setExposure3);
+    if (ui->exposureSlider4) connect(ui->exposureSlider4, &QSlider::valueChanged, this, &MainWindow::setExposure4);
 
     connect(ui->brightnessEdit,    &QLineEdit::textChanged, this, &MainWindow::on_brightnessEdit_textChanged);
     connect(ui->contrastEdit,      &QLineEdit::textChanged, this, &MainWindow::on_contrastEdit_textChanged);
@@ -67,13 +83,26 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->saturationEdit2,   &QLineEdit::textChanged, this, &MainWindow::on_saturationEdit2_textChanged);
     connect(ui->gainEdit2,         &QLineEdit::textChanged, this, &MainWindow::on_gainEdit2_textChanged);
 
+    if (ui->brightnessEdit3) connect(ui->brightnessEdit3, &QLineEdit::textChanged, this, &MainWindow::on_brightnessEdit3_textChanged);
+    if (ui->contrastEdit3)   connect(ui->contrastEdit3,   &QLineEdit::textChanged, this, &MainWindow::on_contrastEdit3_textChanged);
+    if (ui->saturationEdit3) connect(ui->saturationEdit3, &QLineEdit::textChanged, this, &MainWindow::on_saturationEdit3_textChanged);
+    if (ui->gainEdit3)       connect(ui->gainEdit3,       &QLineEdit::textChanged, this, &MainWindow::on_gainEdit3_textChanged);
+
+    if (ui->brightnessEdit4) connect(ui->brightnessEdit4, &QLineEdit::textChanged, this, &MainWindow::on_brightnessEdit4_textChanged);
+    if (ui->contrastEdit4)   connect(ui->contrastEdit4,   &QLineEdit::textChanged, this, &MainWindow::on_contrastEdit4_textChanged);
+    if (ui->saturationEdit4) connect(ui->saturationEdit4, &QLineEdit::textChanged, this, &MainWindow::on_saturationEdit4_textChanged);
+    if (ui->gainEdit4)       connect(ui->gainEdit4,       &QLineEdit::textChanged, this, &MainWindow::on_gainEdit4_textChanged);
+
     connect(ui->exposureEdit,      &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit_textChanged);
     connect(ui->exposureEdit2,     &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit2_textChanged);
+    if (ui->exposureEdit3) connect(ui->exposureEdit3, &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit3_textChanged);
+    if (ui->exposureEdit4) connect(ui->exposureEdit4, &QLineEdit::textChanged, this, &MainWindow::on_exposureEdit4_textChanged);
 
     connect(ui->displayModeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onDisplayModeChanged);
 
     setupBaslerSliderDefaults();
+    applyCameraCountVisibility();
 }
 
 MainWindow::~MainWindow()
@@ -100,8 +129,12 @@ void MainWindow::populateCameraList()
 
     ui->camera1ComboBox->clear();
     ui->camera2ComboBox->clear();
+    if (ui->camera3ComboBox) ui->camera3ComboBox->clear();
+    if (ui->camera4ComboBox) ui->camera4ComboBox->clear();
     ui->camera1ComboBox->addItems(allCameras);
     ui->camera2ComboBox->addItems(allCameras);
+    if (ui->camera3ComboBox) ui->camera3ComboBox->addItems(allCameras);
+    if (ui->camera4ComboBox) ui->camera4ComboBox->addItems(allCameras);
 }
 
 QStringList MainWindow::getCameraDevices()
@@ -146,6 +179,8 @@ void MainWindow::on_startButton_clicked()
     QStringList selectedCameras;
     if (cameraCount >= 1) selectedCameras << ui->camera1ComboBox->currentText();
     if (cameraCount >= 2) selectedCameras << ui->camera2ComboBox->currentText();
+    if (cameraCount >= 3 && ui->camera3ComboBox) selectedCameras << ui->camera3ComboBox->currentText();
+    if (cameraCount >= 4 && ui->camera4ComboBox) selectedCameras << ui->camera4ComboBox->currentText();
 
     for (int i = 0; i < cameraCount; ++i) {
         const QString device = selectedCameras[i];
@@ -165,8 +200,10 @@ void MainWindow::on_startButton_clicked()
             auto* thread = new BaslerCameraThread(serialNumber, resolution, fps, format, nullptr, cameraDir, (i == 1), this);
             baslerCameraThreads.append(thread);
 
-            if (i == 0) connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
-            else        connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
+            if (i == 0)      connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
+            else if (i == 1) connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
+            else if (i == 2) connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera3Image);
+            else if (i == 3) connect(thread, &BaslerCameraThread::newFrameAvailable, this, &MainWindow::updateCamera4Image);
 
             thread->start();
         } else {
@@ -184,8 +221,10 @@ void MainWindow::on_startButton_clicked()
             CameraThread* thread = new CameraThread(device, resolution, fps, format, nullptr, cameraDir, this);
             cameraThreads.append(thread);
 
-            if (i == 0) connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
-            else        connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
+            if (i == 0)      connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera1Image);
+            else if (i == 1) connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera2Image);
+            else if (i == 2) connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera3Image);
+            else if (i == 3) connect(thread, &CameraThread::newFrameAvailable, this, &MainWindow::updateCamera4Image);
 
             thread->start();
         }
@@ -235,7 +274,7 @@ void MainWindow::updateCamera2Image(const QImage& img)
     // Uwaga: BaslerCameraThread już odbija obraz dla drugiej kamery (isSecondCamera=true),
     // więc tutaj NIE robimy dodatkowego odbicia. Jeśli chcesz odbijać obraz z V4L2,
     // zrób to w swojej klasie CameraThread.
-    const QImage toShow = img;
+    const QImage toShow = img.mirrored(false,true);
 
     if (currentDisplayMode == 0) {
         if (ui->camera2Label) {
@@ -244,6 +283,34 @@ void MainWindow::updateCamera2Image(const QImage& img)
         }
     } else if (currentDisplayMode == 1 && concatenatedWindow) {
         concatenatedWindow->updateCamera2Image(toShow);
+    }
+}
+
+void MainWindow::updateCamera3Image(const QImage& img)
+{
+    const QImage toShow = img;
+
+    if (currentDisplayMode == 0) {
+        if (ui->camera3Label) {
+            ui->camera3Label->setPixmap(QPixmap::fromImage(toShow).scaled(ui->camera3Label->size(),
+                                                                          Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
+    } else if (currentDisplayMode == 1 && concatenatedWindow) {
+        concatenatedWindow->updateCamera3Image(toShow);
+    }
+}
+
+void MainWindow::updateCamera4Image(const QImage& img)
+{
+    const QImage toShow = img;
+
+    if (currentDisplayMode == 0) {
+        if (ui->camera4Label) {
+            ui->camera4Label->setPixmap(QPixmap::fromImage(toShow).scaled(ui->camera4Label->size(),
+                                                                          Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
+    } else if (currentDisplayMode == 1 && concatenatedWindow) {
+        concatenatedWindow->updateCamera4Image(toShow);
     }
 }
 
@@ -374,6 +441,72 @@ void MainWindow::setGain2(int value)
     }
 }
 
+void MainWindow::setBrightness3(int value)
+{
+    if (!ui->camera3ComboBox) return;
+    const QString device = ui->camera3ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerBrightness3(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=brightness=%1").arg(value)}); p.waitForFinished(); }
+}
+void MainWindow::setContrast3(int value)
+{
+    if (!ui->camera3ComboBox) return;
+    const QString device = ui->camera3ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerContrast3(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=contrast=%1").arg(value)}); p.waitForFinished(); }
+}
+void MainWindow::setSaturation3(int value)
+{
+    if (!ui->camera3ComboBox) return;
+    const QString device = ui->camera3ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerSaturation3(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=saturation=%1").arg(value)}); p.waitForFinished(); }
+}
+void MainWindow::setGain3(int value)
+{
+    if (!ui->camera3ComboBox) return;
+    const QString device = ui->camera3ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerGain3(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=gain=%1").arg(value)}); p.waitForFinished(); }
+}
+
+void MainWindow::setBrightness4(int value)
+{
+    if (!ui->camera4ComboBox) return;
+    const QString device = ui->camera4ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerBrightness4(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=brightness=%1").arg(value)}); p.waitForFinished(); }
+}
+void MainWindow::setContrast4(int value)
+{
+    if (!ui->camera4ComboBox) return;
+    const QString device = ui->camera4ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerContrast4(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=contrast=%1").arg(value)}); p.waitForFinished(); }
+}
+void MainWindow::setSaturation4(int value)
+{
+    if (!ui->camera4ComboBox) return;
+    const QString device = ui->camera4ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerSaturation4(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=saturation=%1").arg(value)}); p.waitForFinished(); }
+}
+void MainWindow::setGain4(int value)
+{
+    if (!ui->camera4ComboBox) return;
+    const QString device = ui->camera4ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerGain4(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=gain=%1").arg(value)}); p.waitForFinished(); }
+}
+
 void MainWindow::setExposure(int value)
 {
     const QString device = ui->camera1ComboBox->currentText();
@@ -395,6 +528,23 @@ void MainWindow::setExposure2(int value)
     }
 }
 
+void MainWindow::setExposure3(int value)
+{
+    if (!ui->camera3ComboBox) return;
+    const QString device = ui->camera3ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerExposureTime3(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=exposure_time_absolute=%1").arg(value)}); p.waitForFinished(); }
+}
+void MainWindow::setExposure4(int value)
+{
+    if (!ui->camera4ComboBox) return;
+    const QString device = ui->camera4ComboBox->currentText();
+    const bool isBaslerCamera = device.contains("Basler") || device.contains("(");
+    if (isBaslerCamera) setBaslerExposureTime4(value);
+    else { QProcess p; p.start("v4l2-ctl", {"-d", device, QString("--set-ctrl=exposure_time_absolute=%1").arg(value)}); p.waitForFinished(); }
+}
+
 // ---- Edycja pól tekstowych -> suwaki ----
 void MainWindow::on_brightnessEdit_textChanged(const QString &v) { ui->brightnessSlider->setValue(v.toInt()); }
 void MainWindow::on_contrastEdit_textChanged(const QString &v)   { ui->contrastSlider->setValue(v.toInt()); }
@@ -406,8 +556,20 @@ void MainWindow::on_contrastEdit2_textChanged(const QString &v)  { ui->contrastS
 void MainWindow::on_saturationEdit2_textChanged(const QString &v){ ui->saturationSlider2->setValue(v.toInt()); }
 void MainWindow::on_gainEdit2_textChanged(const QString &v)      { ui->gainSlider2->setValue(v.toInt()); }
 
+void MainWindow::on_brightnessEdit3_textChanged(const QString &v){ if (ui->brightnessSlider3) ui->brightnessSlider3->setValue(v.toInt()); }
+void MainWindow::on_contrastEdit3_textChanged(const QString &v)  { if (ui->contrastSlider3) ui->contrastSlider3->setValue(v.toInt()); }
+void MainWindow::on_saturationEdit3_textChanged(const QString &v){ if (ui->saturationSlider3) ui->saturationSlider3->setValue(v.toInt()); }
+void MainWindow::on_gainEdit3_textChanged(const QString &v)      { if (ui->gainSlider3) ui->gainSlider3->setValue(v.toInt()); }
+void MainWindow::on_brightnessEdit4_textChanged(const QString &v){ if (ui->brightnessSlider4) ui->brightnessSlider4->setValue(v.toInt()); }
+void MainWindow::on_contrastEdit4_textChanged(const QString &v)  { if (ui->contrastSlider4) ui->contrastSlider4->setValue(v.toInt()); }
+void MainWindow::on_saturationEdit4_textChanged(const QString &v){ if (ui->saturationSlider4) ui->saturationSlider4->setValue(v.toInt()); }
+void MainWindow::on_gainEdit4_textChanged(const QString &v)      { if (ui->gainSlider4) ui->gainSlider4->setValue(v.toInt()); }
+
 void MainWindow::on_exposureEdit_textChanged(const QString &v)   { ui->exposureSlider->setValue(v.toInt()); }
 void MainWindow::on_exposureEdit2_textChanged(const QString &v)  { ui->exposureSlider2->setValue(v.toInt()); }
+
+void MainWindow::on_exposureEdit3_textChanged(const QString &v)  { if (ui->exposureSlider3) ui->exposureSlider3->setValue(v.toInt()); }
+void MainWindow::on_exposureEdit4_textChanged(const QString &v)  { if (ui->exposureSlider4) ui->exposureSlider4->setValue(v.toInt()); }
 
 // ---- Basler: enumeracja urządzeń (bez PylonInitialize/Terterminate tutaj!) ----
 QStringList MainWindow::getBaslerCameras()
@@ -445,6 +607,14 @@ void MainWindow::setBaslerExposureTime2(int value)
 {
     if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setExposureTime(double(value));
 }
+void MainWindow::setBaslerExposureTime3(int value)
+{
+    if (baslerCameraThreads.size() > 2) baslerCameraThreads[2]->setExposureTime(double(value));
+}
+void MainWindow::setBaslerExposureTime4(int value)
+{
+    if (baslerCameraThreads.size() > 3) baslerCameraThreads[3]->setExposureTime(double(value));
+}
 void MainWindow::setBaslerGain(int value)
 {
     if (!baslerCameraThreads.isEmpty()) baslerCameraThreads[0]->setGain(value * 0.001);
@@ -452,6 +622,14 @@ void MainWindow::setBaslerGain(int value)
 void MainWindow::setBaslerGain2(int value)
 {
     if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setGain(value * 0.001);
+}
+void MainWindow::setBaslerGain3(int value)
+{
+    if (baslerCameraThreads.size() > 2) baslerCameraThreads[2]->setGain(value * 0.001);
+}
+void MainWindow::setBaslerGain4(int value)
+{
+    if (baslerCameraThreads.size() > 3) baslerCameraThreads[3]->setGain(value * 0.001);
 }
 void MainWindow::setBaslerPixelFormat(const QString& format)
 {
@@ -493,6 +671,30 @@ void MainWindow::setBaslerSaturation2(int value)
 {
     if (baslerCameraThreads.size() > 1) baslerCameraThreads[1]->setSaturation(value * 0.004);
 }
+void MainWindow::setBaslerBrightness3(int value)
+{
+    if (baslerCameraThreads.size() > 2) baslerCameraThreads[2]->setBrightness(value * 0.004);
+}
+void MainWindow::setBaslerContrast3(int value)
+{
+    if (baslerCameraThreads.size() > 2) baslerCameraThreads[2]->setContrast(value * 0.004);
+}
+void MainWindow::setBaslerSaturation3(int value)
+{
+    if (baslerCameraThreads.size() > 2) baslerCameraThreads[2]->setSaturation(value * 0.004);
+}
+void MainWindow::setBaslerBrightness4(int value)
+{
+    if (baslerCameraThreads.size() > 3) baslerCameraThreads[3]->setBrightness(value * 0.004);
+}
+void MainWindow::setBaslerContrast4(int value)
+{
+    if (baslerCameraThreads.size() > 3) baslerCameraThreads[3]->setContrast(value * 0.004);
+}
+void MainWindow::setBaslerSaturation4(int value)
+{
+    if (baslerCameraThreads.size() > 3) baslerCameraThreads[3]->setSaturation(value * 0.004);
+}
 
 void MainWindow::setupBaslerSliderDefaults()
 {
@@ -500,26 +702,46 @@ void MainWindow::setupBaslerSliderDefaults()
     ui->exposureSlider->setValue(15000);
     ui->exposureSlider2->setRange(27, 1000000);
     ui->exposureSlider2->setValue(15000);
+    if (ui->exposureSlider3) ui->exposureSlider3->setRange(27, 1000000);
+    if (ui->exposureSlider3) ui->exposureSlider3->setValue(15000);
+    if (ui->exposureSlider4) ui->exposureSlider4->setRange(27, 1000000);
+    if (ui->exposureSlider4) ui->exposureSlider4->setValue(15000);
 
     ui->gainSlider->setRange(0, 48000);
     ui->gainSlider->setValue(0);
     ui->gainSlider2->setRange(0, 48000);
     ui->gainSlider2->setValue(0);
+    if (ui->gainSlider3) ui->gainSlider3->setRange(0, 48000);
+    if (ui->gainSlider3) ui->gainSlider3->setValue(0);
+    if (ui->gainSlider4) ui->gainSlider4->setRange(0, 48000);
+    if (ui->gainSlider4) ui->gainSlider4->setValue(0);
 
     ui->saturationSlider->setRange(0, 500);
     ui->saturationSlider->setValue(250);
     ui->saturationSlider2->setRange(0, 500);
     ui->saturationSlider2->setValue(250);
+    if (ui->saturationSlider3) ui->saturationSlider3->setRange(0, 500);
+    if (ui->saturationSlider3) ui->saturationSlider3->setValue(250);
+    if (ui->saturationSlider4) ui->saturationSlider4->setRange(0, 500);
+    if (ui->saturationSlider4) ui->saturationSlider4->setValue(250);
 
     ui->contrastSlider->setRange(-250, 250);
     ui->contrastSlider->setValue(0);
     ui->contrastSlider2->setRange(-250, 250);
     ui->contrastSlider2->setValue(0);
+    if (ui->contrastSlider3) ui->contrastSlider3->setRange(-250, 250);
+    if (ui->contrastSlider3) ui->contrastSlider3->setValue(0);
+    if (ui->contrastSlider4) ui->contrastSlider4->setRange(-250, 250);
+    if (ui->contrastSlider4) ui->contrastSlider4->setValue(0);
 
     ui->brightnessSlider->setRange(-250, 250);
     ui->brightnessSlider->setValue(0);
     ui->brightnessSlider2->setRange(-250, 250);
     ui->brightnessSlider2->setValue(0);
+    if (ui->brightnessSlider3) ui->brightnessSlider3->setRange(-250, 250);
+    if (ui->brightnessSlider3) ui->brightnessSlider3->setValue(0);
+    if (ui->brightnessSlider4) ui->brightnessSlider4->setRange(-250, 250);
+    if (ui->brightnessSlider4) ui->brightnessSlider4->setValue(0);
 
     ui->brightnessSlider->setSingleStep(1);
     ui->contrastSlider->setSingleStep(1);
@@ -544,6 +766,18 @@ void MainWindow::setupBaslerSliderDefaults()
     ui->saturationEdit2->setText("250");
     ui->gainEdit2->setText("0");
     ui->exposureEdit2->setText("15000");
+
+    if (ui->brightnessEdit3) ui->brightnessEdit3->setText("0");
+    if (ui->contrastEdit3)   ui->contrastEdit3->setText("0");
+    if (ui->saturationEdit3) ui->saturationEdit3->setText("250");
+    if (ui->gainEdit3)       ui->gainEdit3->setText("0");
+    if (ui->exposureEdit3)   ui->exposureEdit3->setText("15000");
+
+    if (ui->brightnessEdit4) ui->brightnessEdit4->setText("0");
+    if (ui->contrastEdit4)   ui->contrastEdit4->setText("0");
+    if (ui->saturationEdit4) ui->saturationEdit4->setText("250");
+    if (ui->gainEdit4)       ui->gainEdit4->setText("0");
+    if (ui->exposureEdit4)   ui->exposureEdit4->setText("15000");
 }
 
 void MainWindow::onDisplayModeChanged(int index)
@@ -551,12 +785,39 @@ void MainWindow::onDisplayModeChanged(int index)
     currentDisplayMode = index;
     if (index == 1) {
         if (!concatenatedWindow) concatenatedWindow = new ConcatenatedWindow(this);
+        // ustaw aktywną liczbę kamer dla okna konkatenacji
+        if (concatenatedWindow) {
+            int camCount = ui->cameraCountComboBox->currentText().toInt();
+            concatenatedWindow->setActiveCameraCount(camCount);
+        }
         concatenatedWindow->show();
         ui->camera1Label->hide();
         ui->camera2Label->hide();
+        if (ui->camera3Label) ui->camera3Label->hide();
+        if (ui->camera4Label) ui->camera4Label->hide();
     } else {
         if (concatenatedWindow) concatenatedWindow->hide();
-        ui->camera1Label->show();
-        ui->camera2Label->show();
+        applyCameraCountVisibility();
     }
+}
+
+void MainWindow::onCameraCountChanged(int index)
+{
+    Q_UNUSED(index);
+    applyCameraCountVisibility();
+    if (concatenatedWindow && currentDisplayMode == 1) {
+        int camCount = ui->cameraCountComboBox->currentText().toInt();
+        concatenatedWindow->setActiveCameraCount(camCount);
+    }
+}
+
+void MainWindow::applyCameraCountVisibility()
+{
+    int camCount = ui->cameraCountComboBox->currentText().toInt();
+
+    // Pokaż/ukryj labele podglądu
+    if (ui->camera1Label) ui->camera1Label->setVisible(camCount >= 1);
+    if (ui->camera2Label) ui->camera2Label->setVisible(camCount >= 2);
+    if (ui->camera3Label) ui->camera3Label->setVisible(camCount >= 3);
+    if (ui->camera4Label) ui->camera4Label->setVisible(camCount >= 4);
 }

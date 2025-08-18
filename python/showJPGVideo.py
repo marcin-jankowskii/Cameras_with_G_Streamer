@@ -2,6 +2,8 @@ import cv2
 import os
 import time
 
+
+
 # Folder z wygenerowanymi JPGami
 BASE_PATH = "/home/marceli/Documents/test8/"
 input_dir =  BASE_PATH + 'synced_jpgs2'
